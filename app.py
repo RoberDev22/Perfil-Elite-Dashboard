@@ -52,7 +52,10 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 }
 
 /* Cabeceras de st.table (nombres de jugadores en el comparador) */
-[data-testid="stTable"] table {
+[data-testid="stTable"] {
+    background: #FFFFFF !important; border-radius: 8px; padding: 0.4rem;
+}
+[data-testid="stTable"] table, [data-testid="stTable"] thead, [data-testid="stTable"] tbody {
     background: #FFFFFF !important;
 }
 [data-testid="stTable"] thead th {
@@ -313,8 +316,17 @@ with tab_ficha:
 with tab_comparador:
     st.subheader("Comparador de jugadores")
     grupo_comp = st.selectbox("Posición a comparar", sorted(rfef["grupo"].unique()), key="grupo_comp")
-    pool = rfef[rfef["grupo"] == grupo_comp]
-    pool = pool.dropna(subset=["Jugador", "Equipo", "Temporada"]).copy()
+    pool_grupo = rfef[rfef["grupo"] == grupo_comp]
+    pool_grupo = pool_grupo.dropna(subset=["Jugador", "Equipo", "Temporada"]).copy()
+
+    equipos_disp = sorted(pool_grupo["Equipo"].unique())
+    equipos_sel = st.multiselect("Filtrar por equipo (opcional)", equipos_disp, default=[])
+    pool = pool_grupo[pool_grupo["Equipo"].isin(equipos_sel)] if equipos_sel else pool_grupo
+
+    if len(pool) < 2:
+        st.warning("Con ese filtro de equipo queda menos de 2 jugadores. Amplía la selección de equipos.")
+        st.stop()
+
     opciones_comp = (pool["Jugador"] + " — " + pool["Equipo"] + " (" + pool["Temporada"] + ")").tolist()
 
     c1, c2 = st.columns(2)
@@ -335,7 +347,9 @@ with tab_comparador:
             fill="toself", name=f"{j['Jugador']} ({j['Temporada']})", line_color=color,
         ))
     fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), height=500,
-                       legend=dict(font=dict(size=15, family="Space Grotesk, sans-serif")),
+                       margin=dict(l=60, r=260, t=40, b=40),
+                       legend=dict(font=dict(size=14, family="Space Grotesk, sans-serif"),
+                                   x=1.0, xanchor="left", y=0.5, yanchor="middle"),
                        font=dict(family="Inter, sans-serif", color="#14213D"),
                        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF")
     st.plotly_chart(fig, width='stretch')
