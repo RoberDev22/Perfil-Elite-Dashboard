@@ -55,8 +55,20 @@ VALIDACION_TEXTO = {
 
 @st.cache_data
 def cargar_datos():
-    rfef = pd.read_csv("data/rfef_final_con_shap.csv")
-    laliga = pd.read_csv("data/laliga_arquetipos_fase_a.csv")
+    import os
+
+    def buscar(nombre):
+        candidatos = [f"data/{nombre}", nombre, f"./{nombre}"]
+        for c in candidatos:
+            if os.path.exists(c):
+                return c
+        raise FileNotFoundError(
+            f"No se encontró '{nombre}'. Colócalo en la raíz del repositorio "
+            f"o dentro de una carpeta 'data/'. Rutas probadas: {candidatos}"
+        )
+
+    rfef = pd.read_csv(buscar("rfef_final_con_shap.csv"))
+    laliga = pd.read_csv(buscar("laliga_arquetipos_fase_a.csv"))
     return rfef, laliga
 
 
