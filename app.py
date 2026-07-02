@@ -193,7 +193,7 @@ with tab_ficha:
         st.markdown("**Por qué tiene este score (SHAP):**")
         factores = jugador["shap_top_factores"].split(" | ")
         nombres = [f.split(" (")[0] for f in factores]
-        valores = [float(f.split("(")[1].replace(")", "").replace("+", "")) for f in factores]
+        valores = [float(f.split("(")[1].replace(")", "").replace("+", "").replace("−", "-")) for f in factores]
         colores = ["#1B4332" if v >= 0 else "#B33A3A" for v in valores]
         fig_shap = go.Figure(go.Bar(
             x=valores, y=nombres, orientation="h", marker_color=colores,
