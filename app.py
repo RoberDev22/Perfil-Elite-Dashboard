@@ -34,8 +34,17 @@ div[data-testid="stMetric"] {
     background-color: #FFFFFF; border: 1px solid #E4E1D8; border-left: 5px solid #1B4332;
     border-radius: 10px; padding: 0.9rem 1.1rem;
 }
-div[data-testid="stMetricValue"] { font-family: 'JetBrains Mono', monospace; color: #14213D; }
-div[data-testid="stMetricLabel"] { font-family: 'Inter', sans-serif; color: #6B7280; font-weight: 500; }
+div[data-testid="stMetricValue"] { font-family: 'JetBrains Mono', monospace; color: #14213D !important; }
+div[data-testid="stMetricLabel"], div[data-testid="stMetricLabel"] p {
+    font-family: 'Inter', sans-serif; color: #6B7280 !important; font-weight: 500;
+}
+
+/* Forzar el color del texto dentro de los gráficos Plotly (títulos, ejes, etiquetas),
+   que Streamlit Cloud en modo oscuro puede aclarar por encima del color fijado en Python */
+.js-plotly-plot text, .js-plotly-plot .gtitle, .js-plotly-plot .xtitle, .js-plotly-plot .ytitle,
+.js-plotly-plot .legendtext, .js-plotly-plot tspan {
+    fill: #14213D !important;
+}
 
 /* Contenedores con borde (tarjetas de validación empírica) */
 div[data-testid="stVerticalBlockBorderWrapper"] {
