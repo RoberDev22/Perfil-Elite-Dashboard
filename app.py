@@ -174,8 +174,9 @@ with tab_ranking:
 # ---------------------------------------------------------------------------
 with tab_ficha:
     st.subheader("Ficha individual")
-    opciones = (rfef["Jugador"] + " — " + rfef["Equipo"] + " (" + rfef["Temporada"] + ")").tolist()
-    idx_map = dict(zip(opciones, rfef.index))
+    rfef_validos = rfef.dropna(subset=["Jugador", "Equipo", "Temporada"]).copy()
+    opciones = (rfef_validos["Jugador"] + " — " + rfef_validos["Equipo"] + " (" + rfef_validos["Temporada"] + ")").tolist()
+    idx_map = dict(zip(opciones, rfef_validos.index))
     seleccion = st.selectbox("Selecciona un jugador", opciones,
                               index=opciones.index(opciones[0]) if opciones else 0)
     jugador = rfef.loc[idx_map[seleccion]]
@@ -185,8 +186,19 @@ with tab_ficha:
 
     with colA:
         st.metric("Score final", f"{jugador['score_final']:.1f}")
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Arquetipo", jugador["arquetipo_proyectado"])
+
+        st.markdown(
+            f"""<div style="background:#EAF2EC; border:1px solid #1B4332; border-left:5px solid #1B4332;
+                 border-radius:10px; padding:0.55rem 1rem; margin:0.6rem 0 0.9rem 0;
+                 font-family:'Space Grotesk', sans-serif; font-weight:600; color:#14213D; font-size:1.05rem;">
+                 {jugador['arquetipo_proyectado']}
+                 <span style="font-family:'Inter', sans-serif; font-weight:500; color:#6B7280; font-size:0.8rem;">
+                 · arquetipo proyectado ({grupo})</span>
+                 </div>""",
+            unsafe_allow_html=True,
+        )
+
+        c2, c3 = st.columns(2)
         c2.metric("Edad", int(jugador["Edad"]))
         c3.metric("Similitud", f"{jugador['similitud_coseno']:.2f}")
 
@@ -231,6 +243,7 @@ with tab_comparador:
     st.subheader("Comparador de jugadores")
     grupo_comp = st.selectbox("Posición a comparar", sorted(rfef["grupo"].unique()), key="grupo_comp")
     pool = rfef[rfef["grupo"] == grupo_comp]
+    pool = pool.dropna(subset=["Jugador", "Equipo", "Temporada"]).copy()
     opciones_comp = (pool["Jugador"] + " — " + pool["Equipo"] + " (" + pool["Temporada"] + ")").tolist()
 
     c1, c2 = st.columns(2)
