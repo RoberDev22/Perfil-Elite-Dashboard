@@ -43,12 +43,15 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 }
 
 /* Cabeceras de st.table (nombres de jugadores en el comparador) */
+[data-testid="stTable"] table {
+    background: #FFFFFF !important;
+}
 [data-testid="stTable"] thead th {
     font-family: 'Space Grotesk', sans-serif !important; font-size: 1.05rem !important;
-    color: #14213D !important; font-weight: 700 !important;
+    color: #14213D !important; font-weight: 700 !important; background: #FFFFFF !important;
 }
 [data-testid="stTable"] tbody td, [data-testid="stTable"] tbody th {
-    font-size: 0.95rem !important;
+    font-size: 0.95rem !important; color: #14213D !important; background: #FFFFFF !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -204,8 +207,10 @@ with tab_ficha:
     grupo = jugador["grupo"]
 
     st.markdown(
-        f"""<div style="font-family:'Space Grotesk', sans-serif; font-weight:700;
-             color:#14213D; font-size:1.6rem; margin:0.3rem 0 0.6rem 0;">
+        f"""<div style="background:#FFFFFF; border:1px solid #E4E1D8; border-radius:10px;
+             padding:0.7rem 1.1rem; margin:0.3rem 0 0.9rem 0;
+             font-family:'Space Grotesk', sans-serif; font-weight:700;
+             color:#14213D; font-size:1.6rem;">
              {jugador['Jugador']}
              <span style="font-family:'Inter', sans-serif; font-weight:500; color:#6B7280; font-size:1rem;">
              — {jugador['Equipo']} ({jugador['Temporada']})</span></div>""",
@@ -240,7 +245,7 @@ with tab_ficha:
             xaxis_title=f"Distribución de scores — {grupo}s (1ª RFEF)",
             yaxis_visible=False,
             font=dict(family="Inter, sans-serif", color="#14213D", size=11),
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
         )
         st.plotly_chart(fig_dist, width='stretch')
 
@@ -271,7 +276,7 @@ with tab_ficha:
         fig_shap.update_layout(height=220, margin=dict(l=10, r=10, t=10, b=10),
                                 xaxis_title="Contribución al score (SHAP)",
                                 font=dict(family="Inter, sans-serif", color="#14213D"),
-                                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+                                paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF")
         st.plotly_chart(fig_shap, width='stretch')
 
     with colB:
@@ -289,7 +294,7 @@ with tab_ficha:
             showlegend=False, height=420,
             title=f"Percentil dentro de su posición ({grupo}, 1ª RFEF)",
             font=dict(family="Inter, sans-serif", color="#14213D"),
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
         )
         st.plotly_chart(fig_radar, width='stretch')
 
@@ -323,7 +328,7 @@ with tab_comparador:
     fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), height=500,
                        legend=dict(font=dict(size=15, family="Space Grotesk, sans-serif")),
                        font=dict(family="Inter, sans-serif", color="#14213D"),
-                       paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+                       paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF")
     st.plotly_chart(fig, width='stretch')
 
     comp_tabla = pd.DataFrame({
@@ -335,30 +340,35 @@ with tab_comparador:
 # ---------------------------------------------------------------------------
 # TAB 4 — Validación empírica
 # ---------------------------------------------------------------------------
+GRUPO_COLOR = {"Extremo": "#1B4332", "Mediapunta": "#14213D", "Delantero": "#C9762C"}
+
 with tab_validacion:
     st.subheader("Validación empírica: casos reales detectados por el sistema")
     st.caption("Jugadores que el modelo puntuó alto en 1ª RFEF y que después confirmaron su proyección en LaLiga o en clubes de mayor nivel.")
 
-    for nombre in VALIDACION_EMPIRICA:
+    for i, nombre in enumerate(VALIDACION_EMPIRICA, start=1):
         fila = rfef[rfef["Jugador"] == nombre]
         if fila.empty:
             continue
         fila = fila.sort_values("score_final", ascending=False).iloc[0]
-        with st.container(border=True):
-            c1, c2 = st.columns([1, 3])
-            with c1:
-                st.markdown(
-                    f"""<div style="font-family:'Space Grotesk', sans-serif; font-weight:700;
-                         color:#14213D; font-size:1.35rem; line-height:1.2; margin-bottom:0.2rem;">
-                         {fila['Jugador']}</div>""",
-                    unsafe_allow_html=True,
-                )
-                st.markdown(
-                    f"""<div style="font-family:'JetBrains Mono', monospace; font-weight:700;
-                         color:#1B4332; font-size:2rem; line-height:1.1;">
-                         {fila['score_final']:.1f} <span style="font-size:1rem; font-weight:500; color:#6B7280;">pts</span></div>""",
-                    unsafe_allow_html=True,
-                )
-                st.caption(f"{fila['arquetipo_proyectado']} · {fila['Temporada']} · {fila['Equipo']}")
-            with c2:
-                st.write(VALIDACION_TEXTO.get(nombre, ""))
+        color = GRUPO_COLOR.get(fila["grupo"], "#1B4332")
+        st.markdown(
+            f"""<div style="border:1px solid #E4E1D8; border-left:6px solid {color}; border-radius:10px;
+                 padding:1.1rem 1.4rem; margin-bottom:0.9rem; display:flex; gap:1.4rem; align-items:flex-start;
+                 background:#FFFFFF;">
+                <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color};
+                     font-size:1.7rem; min-width:2.4rem; line-height:1.4;">{i:02d}</div>
+                <div style="flex:0 0 210px;">
+                    <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D;
+                         font-size:1.35rem; line-height:1.2;">{fila['Jugador']}</div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color};
+                         font-size:1.9rem; line-height:1.3; margin-top:0.2rem;">
+                         {fila['score_final']:.1f} <span style="font-size:0.9rem; font-weight:500; color:#6B7280;">pts</span></div>
+                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.82rem; margin-top:0.2rem;">
+                         {fila['arquetipo_proyectado']} · {fila['Temporada']} · {fila['Equipo']}</div>
+                </div>
+                <div style="flex:1; font-family:'Inter', sans-serif; color:#14213D; font-size:0.95rem;
+                     line-height:1.5; padding-top:0.2rem;">{VALIDACION_TEXTO.get(nombre, "")}</div>
+                </div>""",
+            unsafe_allow_html=True,
+        )
