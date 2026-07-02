@@ -41,6 +41,15 @@ div[data-testid="stMetricLabel"] { font-family: 'Inter', sans-serif; color: #6B7
 div[data-testid="stVerticalBlockBorderWrapper"] {
     border-radius: 12px !important; border: 1px solid #E4E1D8 !important;
 }
+
+/* Cabeceras de st.table (nombres de jugadores en el comparador) */
+[data-testid="stTable"] thead th {
+    font-family: 'Space Grotesk', sans-serif !important; font-size: 1.05rem !important;
+    color: #14213D !important; font-weight: 700 !important;
+}
+[data-testid="stTable"] tbody td, [data-testid="stTable"] tbody th {
+    font-size: 0.95rem !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -110,9 +119,20 @@ rfef, laliga = cargar_datos()
 
 # percentiles dentro de cada grupo (para el radar), calculados una vez
 percentiles = {}
+stats_score = {}
 for grupo, varlist in VARS.items():
     sub = rfef[rfef["grupo"] == grupo]
     percentiles[grupo] = sub[varlist].rank(pct=True) * 100
+    stats_score[grupo] = {
+        "percentil_score": sub["score_final"].rank(pct=True) * 100,
+        "media": sub["score_final"].mean(),
+        "mediana": sub["score_final"].median(),
+        "p90": sub["score_final"].quantile(0.90),
+        "valores": sub["score_final"].values,
+    }
+
+rfef["percentil_score"] = pd.concat([stats_score[g]["percentil_score"] for g in VARS]).reindex(rfef.index)
+rfef = rfef.copy()
 
 # ---------------------------------------------------------------------------
 # Cabecera
@@ -160,10 +180,11 @@ with tab_ranking:
     st.write(f"**{len(tabla)}** jugadores cumplen los filtros.")
     st.dataframe(
         tabla[["Jugador", "Equipo", "Edad", "Temporada", "grupo", "arquetipo_proyectado",
-               "similitud_coseno", "score_final"]]
+               "similitud_coseno", "score_final", "percentil_score"]]
         .rename(columns={"grupo": "Posición", "arquetipo_proyectado": "Arquetipo",
-                          "similitud_coseno": "Similitud", "score_final": "Score"})
-        .round({"Similitud": 3, "Score": 1}),
+                          "similitud_coseno": "Similitud", "score_final": "Score",
+                          "percentil_score": "Percentil (vs. su posición)"})
+        .round({"Similitud": 3, "Score": 1, "Percentil (vs. su posición)": 0}),
         width='stretch',
         hide_index=True,
         height=520,
@@ -182,10 +203,46 @@ with tab_ficha:
     jugador = rfef.loc[idx_map[seleccion]]
     grupo = jugador["grupo"]
 
+    st.markdown(
+        f"""<div style="font-family:'Space Grotesk', sans-serif; font-weight:700;
+             color:#14213D; font-size:1.6rem; margin:0.3rem 0 0.6rem 0;">
+             {jugador['Jugador']}
+             <span style="font-family:'Inter', sans-serif; font-weight:500; color:#6B7280; font-size:1rem;">
+             — {jugador['Equipo']} ({jugador['Temporada']})</span></div>""",
+        unsafe_allow_html=True,
+    )
+
     colA, colB = st.columns([1, 1.3])
 
     with colA:
         st.metric("Score final", f"{jugador['score_final']:.1f}")
+
+        pct_score = stats_score[grupo]["percentil_score"].loc[jugador.name]
+        media_grupo = stats_score[grupo]["media"]
+        diff_media = jugador["score_final"] - media_grupo
+        st.caption(
+            f"Percentil **{pct_score:.0f}** entre los {grupo.lower()}s de 1ª RFEF analizados "
+            f"({'+' if diff_media >= 0 else ''}{diff_media:.1f} vs. media del grupo, {media_grupo:.1f})"
+        )
+
+        fig_dist = go.Figure()
+        fig_dist.add_trace(go.Histogram(
+            x=stats_score[grupo]["valores"], nbinsx=30,
+            marker_color="#D8D4C8", name="Resto del grupo", opacity=0.9,
+        ))
+        fig_dist.add_vline(x=jugador["score_final"], line_width=3, line_color="#1B4332",
+                            annotation_text=jugador["Jugador"], annotation_position="top",
+                            annotation_font=dict(family="Space Grotesk, sans-serif", color="#14213D", size=12))
+        fig_dist.add_vline(x=media_grupo, line_width=1, line_dash="dot", line_color="#6B7280",
+                            annotation_text="media", annotation_font=dict(size=10, color="#6B7280"))
+        fig_dist.update_layout(
+            height=140, margin=dict(l=10, r=10, t=30, b=10), showlegend=False,
+            xaxis_title=f"Distribución de scores — {grupo}s (1ª RFEF)",
+            yaxis_visible=False,
+            font=dict(family="Inter, sans-serif", color="#14213D", size=11),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        )
+        st.plotly_chart(fig_dist, width='stretch')
 
         st.markdown(
             f"""<div style="background:#EAF2EC; border:1px solid #1B4332; border-left:5px solid #1B4332;
@@ -264,6 +321,7 @@ with tab_comparador:
             fill="toself", name=f"{j['Jugador']} ({j['Temporada']})", line_color=color,
         ))
     fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), height=500,
+                       legend=dict(font=dict(size=15, family="Space Grotesk, sans-serif")),
                        font=dict(family="Inter, sans-serif", color="#14213D"),
                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
     st.plotly_chart(fig, width='stretch')
@@ -289,7 +347,18 @@ with tab_validacion:
         with st.container(border=True):
             c1, c2 = st.columns([1, 3])
             with c1:
-                st.metric(fila["Jugador"], f"{fila['score_final']:.1f} pts")
+                st.markdown(
+                    f"""<div style="font-family:'Space Grotesk', sans-serif; font-weight:700;
+                         color:#14213D; font-size:1.35rem; line-height:1.2; margin-bottom:0.2rem;">
+                         {fila['Jugador']}</div>""",
+                    unsafe_allow_html=True,
+                )
+                st.markdown(
+                    f"""<div style="font-family:'JetBrains Mono', monospace; font-weight:700;
+                         color:#1B4332; font-size:2rem; line-height:1.1;">
+                         {fila['score_final']:.1f} <span style="font-size:1rem; font-weight:500; color:#6B7280;">pts</span></div>""",
+                    unsafe_allow_html=True,
+                )
                 st.caption(f"{fila['arquetipo_proyectado']} · {fila['Temporada']} · {fila['Equipo']}")
             with c2:
                 st.write(VALIDACION_TEXTO.get(nombre, ""))
