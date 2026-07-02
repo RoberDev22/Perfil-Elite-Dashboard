@@ -3,7 +3,46 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Perfil de Élite — Scouting Dashboard", layout="wide", page_icon="⚽")
+st.set_page_config(page_title="Perfil de Élite — Scouting Dashboard", layout="wide", page_icon=":material/sports_soccer:")
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
+
+html, body, [class*="css"]  { font-family: 'Inter', sans-serif; }
+
+h1, h2, h3 { font-family: 'Space Grotesk', sans-serif !important; letter-spacing: -0.01em; }
+
+/* Cabecera */
+.pe-header {
+    background: linear-gradient(135deg, #14213D 0%, #1B4332 100%);
+    padding: 1.6rem 2rem; border-radius: 14px; margin-bottom: 1.2rem;
+}
+.pe-header h1 { color: #F6F5F0 !important; margin: 0; font-size: 1.9rem; }
+.pe-header p { color: #C9D3C5; margin: 0.3rem 0 0 0; font-size: 0.95rem; }
+
+/* Pestañas */
+.stTabs [data-baseweb="tab-list"] { gap: 4px; }
+.stTabs [data-baseweb="tab"] {
+    background-color: #FFFFFF; border-radius: 8px 8px 0 0; padding: 8px 18px;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: #6B7280;
+}
+.stTabs [aria-selected="true"] { color: #14213D !important; border-bottom: 3px solid #1B4332 !important; }
+
+/* Métricas -> estilo "ficha de scouting" */
+div[data-testid="stMetric"] {
+    background-color: #FFFFFF; border: 1px solid #E4E1D8; border-left: 5px solid #1B4332;
+    border-radius: 10px; padding: 0.9rem 1.1rem;
+}
+div[data-testid="stMetricValue"] { font-family: 'JetBrains Mono', monospace; color: #14213D; }
+div[data-testid="stMetricLabel"] { font-family: 'Inter', sans-serif; color: #6B7280; font-weight: 500; }
+
+/* Contenedores con borde (tarjetas de validación empírica) */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: 12px !important; border: 1px solid #E4E1D8 !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # Datos
@@ -33,13 +72,8 @@ RADAR_VARS = {
 }
 
 VALIDACION_EMPIRICA = [
-    ('Fer López', 'Celta de Vigo'),
-    ('A. Ezzalzouli', 'Real Betis'),
-    ('Pablo Torre', 'Mallorca'),
-    ('Jan Virgili', 'Mallorca'),
-    ('Pau Víctor', 'Sporting Braga'),
-    ('Fermín López', 'Barcelona'),
-    ('Victor Muñoz', 'Osasuna'),
+    "Fer López", "A. Ezzalzouli", "Pablo Torre", "Jan Virgili",
+    "Pau Víctor", "Fermín López", "Victor Muñoz",
 ]
 
 VALIDACION_TEXTO = {
@@ -83,14 +117,17 @@ for grupo, varlist in VARS.items():
 # ---------------------------------------------------------------------------
 # Cabecera
 # ---------------------------------------------------------------------------
-st.title("⚽ Perfil de Élite — Scouting Dashboard")
-st.caption(
-    "Sistema de detección de talento cross-liga (1ª RFEF → LaLiga) · "
-    "PCA + K-Means + LightGBM + SHAP · TFM Big Data Aplicado al Scouting en Fútbol"
-)
+st.markdown("""
+<div class="pe-header">
+    <h1><span style="font-family:'Material Symbols Rounded'; font-weight:400; vertical-align:-4px; font-size:1.6rem;">radar</span> Perfil de Élite</h1>
+    <p>Sistema de detección de talento cross-liga (1ª RFEF → LaLiga) · PCA + K-Means + LightGBM + SHAP
+    · TFM Big Data Aplicado al Scouting en Fútbol</p>
+</div>
+""", unsafe_allow_html=True)
 
 tab_ranking, tab_ficha, tab_comparador, tab_validacion = st.tabs(
-    ["📊 Ranking", "🔎 Ficha de jugador", "⚖️ Comparador", "✅ Validación empírica"]
+    [":material/leaderboard: Ranking", ":material/badge: Ficha de jugador",
+     ":material/compare_arrows: Comparador", ":material/verified: Validación empírica"]
 )
 
 # ---------------------------------------------------------------------------
@@ -157,13 +194,15 @@ with tab_ficha:
         factores = jugador["shap_top_factores"].split(" | ")
         nombres = [f.split(" (")[0] for f in factores]
         valores = [float(f.split("(")[1].replace(")", "").replace("+", "")) for f in factores]
-        colores = ["#2E7D32" if v >= 0 else "#C62828" for v in valores]
+        colores = ["#1B4332" if v >= 0 else "#B33A3A" for v in valores]
         fig_shap = go.Figure(go.Bar(
             x=valores, y=nombres, orientation="h", marker_color=colores,
             text=[f"{v:+.1f}" for v in valores], textposition="outside",
         ))
         fig_shap.update_layout(height=220, margin=dict(l=10, r=10, t=10, b=10),
-                                xaxis_title="Contribución al score (SHAP)")
+                                xaxis_title="Contribución al score (SHAP)",
+                                font=dict(family="Inter, sans-serif", color="#14213D"),
+                                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
         st.plotly_chart(fig_shap, width='stretch')
 
     with colB:
@@ -173,12 +212,15 @@ with tab_ficha:
         fig_radar.add_trace(go.Scatterpolar(
             r=valores_pct + [valores_pct[0]],
             theta=radar_vars + [radar_vars[0]],
-            fill="toself", name=jugador["Jugador"],
+            fill="toself", name=jugador["Jugador"], line_color="#1B4332",
+            fillcolor="rgba(27, 67, 50, 0.25)",
         ))
         fig_radar.update_layout(
             polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
             showlegend=False, height=420,
             title=f"Percentil dentro de su posición ({grupo}, 1ª RFEF)",
+            font=dict(family="Inter, sans-serif", color="#14213D"),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         )
         st.plotly_chart(fig_radar, width='stretch')
 
@@ -202,13 +244,15 @@ with tab_comparador:
 
     radar_vars = RADAR_VARS[grupo_comp]
     fig = go.Figure()
-    for j, color in [(j1, "#1565C0"), (j2, "#EF6C00")]:
+    for j, color in [(j1, "#14213D"), (j2, "#C9762C")]:
         vals = [percentiles[grupo_comp].loc[j.name, v] for v in radar_vars]
         fig.add_trace(go.Scatterpolar(
             r=vals + [vals[0]], theta=radar_vars + [radar_vars[0]],
             fill="toself", name=f"{j['Jugador']} ({j['Temporada']})", line_color=color,
         ))
-    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), height=500)
+    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), height=500,
+                       font=dict(family="Inter, sans-serif", color="#14213D"),
+                       paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
     st.plotly_chart(fig, width='stretch')
 
     comp_tabla = pd.DataFrame({
@@ -224,8 +268,8 @@ with tab_validacion:
     st.subheader("Validación empírica: casos reales detectados por el sistema")
     st.caption("Jugadores que el modelo puntuó alto en 1ª RFEF y que después confirmaron su proyección en LaLiga o en clubes de mayor nivel.")
 
-    for nombre, equipo in VALIDACION_EMPIRICA:
-        fila = rfef[(rfef["Jugador"] == nombre) & (rfef["Equipo"] == equipo)]
+    for nombre in VALIDACION_EMPIRICA:
+        fila = rfef[rfef["Jugador"] == nombre]
         if fila.empty:
             continue
         fila = fila.sort_values("score_final", ascending=False).iloc[0]
@@ -233,6 +277,6 @@ with tab_validacion:
             c1, c2 = st.columns([1, 3])
             with c1:
                 st.metric(fila["Jugador"], f"{fila['score_final']:.1f} pts")
-                st.caption(f"{fila['arquetipo_proyectado']} · {fila['Temporada']} · {equipo}")
+                st.caption(f"{fila['arquetipo_proyectado']} · {fila['Temporada']} · {fila['Equipo']}")
             with c2:
                 st.write(VALIDACION_TEXTO.get(nombre, ""))
