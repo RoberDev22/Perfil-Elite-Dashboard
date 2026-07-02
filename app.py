@@ -95,6 +95,8 @@ RADAR_VARS = {
                   'Toques en el área de penalti/90', 'Carreras en progresión/90', 'Duelos defensivos/90'],
 }
 
+GRUPO_COLOR = {"Extremo": "#1B4332", "Mediapunta": "#14213D", "Delantero": "#C9762C"}
+
 VALIDACION_EMPIRICA = [
     "Fer López", "A. Ezzalzouli", "Pablo Torre", "Jan Virgili",
     "Pau Víctor", "Fermín López", "Victor Muñoz",
@@ -148,6 +150,12 @@ for grupo, varlist in VARS.items():
 
 rfef["percentil_score"] = pd.concat([stats_score[g]["percentil_score"] for g in VARS]).reindex(rfef.index)
 rfef = rfef.copy()
+
+# Variables comunes a las tres posiciones, para poder comparar jugadores de
+# distinta posición en el mismo radar (percentil calculado sobre todo el pool ofensivo)
+CROSS_VARS = ["Goles/90", "xG/90", "xA/90", "Remates/90",
+              "Carreras en progresión/90", "Duelos defensivos/90"]
+percentiles_cross = rfef[CROSS_VARS].rank(pct=True) * 100
 
 # ---------------------------------------------------------------------------
 # Cabecera
@@ -204,6 +212,46 @@ with tab_ranking:
         hide_index=True,
         height=520,
     )
+
+    st.markdown("#### Edad vs. Score — dónde están los perfiles jóvenes con puntuación alta")
+    fig_scatter = go.Figure()
+    for grupo_s in sorted(tabla["grupo"].unique()):
+        sub = tabla[tabla["grupo"] == grupo_s]
+        fig_scatter.add_trace(go.Scatter(
+            x=sub["Edad"], y=sub["score_final"], mode="markers", name=grupo_s,
+            marker=dict(color=GRUPO_COLOR.get(grupo_s, "#1B4332"), size=9, opacity=0.75,
+                        line=dict(width=1, color="#FFFFFF")),
+            customdata=sub[["Jugador", "Equipo", "Temporada", "arquetipo_proyectado"]],
+            hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]} (%{customdata[2]})<br>"
+                          "Arquetipo: %{customdata[3]}<br>Edad: %{x} · Score: %{y:.1f}<extra></extra>",
+        ))
+    fig_scatter.update_layout(
+        height=460, margin=dict(l=50, r=30, t=20, b=50),
+        xaxis_title="Edad", yaxis_title="Score final",
+        font=dict(family="Inter, sans-serif", color="#14213D"),
+        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+        legend=dict(font=dict(family="Space Grotesk, sans-serif", size=13)),
+    )
+    fig_scatter.update_xaxes(gridcolor="#EDEBE4")
+    fig_scatter.update_yaxes(gridcolor="#EDEBE4")
+    st.plotly_chart(fig_scatter, width='stretch')
+
+    st.markdown("#### Top 10 según los filtros actuales")
+    top10 = tabla.head(10).sort_values("score_final")
+    fig_bar = go.Figure(go.Bar(
+        x=top10["score_final"], y=top10["Jugador"] + " (" + top10["Equipo"] + ")",
+        orientation="h",
+        marker_color=[GRUPO_COLOR.get(g, "#1B4332") for g in top10["grupo"]],
+        text=top10["score_final"].round(1), textposition="outside",
+    ))
+    fig_bar.update_layout(
+        height=420, margin=dict(l=10, r=30, t=10, b=40),
+        xaxis_title="Score final",
+        font=dict(family="Inter, sans-serif", color="#14213D"),
+        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+    )
+    fig_bar.update_xaxes(gridcolor="#EDEBE4")
+    st.plotly_chart(fig_bar, width='stretch')
 
 # ---------------------------------------------------------------------------
 # TAB 2 — Ficha de jugador
@@ -315,36 +363,54 @@ with tab_ficha:
 # ---------------------------------------------------------------------------
 with tab_comparador:
     st.subheader("Comparador de jugadores")
-    grupo_comp = st.selectbox("Posición a comparar", sorted(rfef["grupo"].unique()), key="grupo_comp")
-    pool_grupo = rfef[rfef["grupo"] == grupo_comp]
-    pool_grupo = pool_grupo.dropna(subset=["Jugador", "Equipo", "Temporada"]).copy()
+    st.caption("Puedes comparar jugadores de la misma posición (radar con métricas específicas) "
+               "o de posiciones distintas (radar con métricas comunes de ataque).")
 
-    equipos_disp = sorted(pool_grupo["Equipo"].unique())
-    equipos_sel = st.multiselect("Filtrar por equipo (opcional)", equipos_disp, default=[])
-    pool = pool_grupo[pool_grupo["Equipo"].isin(equipos_sel)] if equipos_sel else pool_grupo
+    rfef_validos_comp = rfef.dropna(subset=["Jugador", "Equipo", "Temporada"]).copy()
 
-    if len(pool) < 2:
-        st.warning("Con ese filtro de equipo queda menos de 2 jugadores. Amplía la selección de equipos.")
-        st.stop()
-
-    opciones_comp = (pool["Jugador"] + " — " + pool["Equipo"] + " (" + pool["Temporada"] + ")").tolist()
+    def selector_jugador(etiqueta, key_prefix, index_default):
+        c_pos, c_eq = st.columns(2)
+        with c_pos:
+            pos_sel = st.multiselect(f"Posición ({etiqueta})", sorted(rfef_validos_comp["grupo"].unique()),
+                                      default=sorted(rfef_validos_comp["grupo"].unique()), key=f"{key_prefix}_pos")
+        sub = rfef_validos_comp[rfef_validos_comp["grupo"].isin(pos_sel)] if pos_sel else rfef_validos_comp
+        with c_eq:
+            eq_sel = st.multiselect(f"Equipo ({etiqueta}, opcional)", sorted(sub["Equipo"].unique()),
+                                     default=[], key=f"{key_prefix}_eq")
+        if eq_sel:
+            sub = sub[sub["Equipo"].isin(eq_sel)]
+        if sub.empty:
+            st.warning(f"Sin resultados para {etiqueta} con esos filtros.")
+            st.stop()
+        opciones = (sub["Jugador"] + " — " + sub["Equipo"] + " (" + sub["Temporada"] + ")").tolist()
+        idx_map = dict(zip(opciones, sub.index))
+        sel = st.selectbox(f"Jugador — {etiqueta}", opciones,
+                            index=min(index_default, len(opciones) - 1), key=f"{key_prefix}_sel")
+        return sub.loc[idx_map[sel]]
 
     c1, c2 = st.columns(2)
     with c1:
-        sel1 = st.selectbox("Jugador 1", opciones_comp, index=0)
+        j1 = selector_jugador("Jugador 1", "j1", 0)
     with c2:
-        sel2 = st.selectbox("Jugador 2", opciones_comp, index=min(1, len(opciones_comp) - 1))
+        j2 = selector_jugador("Jugador 2", "j2", 1)
 
-    idx_map_comp = dict(zip(opciones_comp, pool.index))
-    j1, j2 = pool.loc[idx_map_comp[sel1]], pool.loc[idx_map_comp[sel2]]
+    misma_posicion = j1["grupo"] == j2["grupo"]
+    if misma_posicion:
+        radar_vars = RADAR_VARS[j1["grupo"]]
+        tabla_percentiles = percentiles[j1["grupo"]]
+        st.caption(f"Misma posición ({j1['grupo']}) — radar con las métricas específicas de esa posición.")
+    else:
+        radar_vars = CROSS_VARS
+        tabla_percentiles = percentiles_cross
+        st.caption(f"Posiciones distintas ({j1['grupo']} vs. {j2['grupo']}) — radar con métricas comunes de ataque, "
+                   "percentil calculado sobre el conjunto completo de jugadores ofensivos de 1ª RFEF.")
 
-    radar_vars = RADAR_VARS[grupo_comp]
     fig = go.Figure()
     for j, color in [(j1, "#14213D"), (j2, "#C9762C")]:
-        vals = [percentiles[grupo_comp].loc[j.name, v] for v in radar_vars]
+        vals = [tabla_percentiles.loc[j.name, v] for v in radar_vars]
         fig.add_trace(go.Scatterpolar(
             r=vals + [vals[0]], theta=radar_vars + [radar_vars[0]],
-            fill="toself", name=f"{j['Jugador']} ({j['Temporada']})", line_color=color,
+            fill="toself", name=f"{j['Jugador']} ({j['grupo']}, {j['Temporada']})", line_color=color,
         ))
     fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), height=500,
                        margin=dict(l=60, r=260, t=40, b=40),
@@ -363,8 +429,6 @@ with tab_comparador:
 # ---------------------------------------------------------------------------
 # TAB 4 — Validación empírica
 # ---------------------------------------------------------------------------
-GRUPO_COLOR = {"Extremo": "#1B4332", "Mediapunta": "#14213D", "Delantero": "#C9762C"}
-
 with tab_validacion:
     st.subheader("Validación empírica: casos reales detectados por el sistema")
     st.caption("Jugadores que el modelo puntuó alto en 1ª RFEF y que después confirmaron su proyección en LaLiga o en clubes de mayor nivel.")
