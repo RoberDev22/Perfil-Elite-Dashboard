@@ -2,8 +2,69 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+import os
+import re
+import unicodedata
+import base64
 
 st.set_page_config(page_title="Perfil de Élite — Scouting Dashboard", layout="wide", page_icon=":material/sports_soccer:")
+
+
+def normaliza_nombre(nombre):
+    """'Fer López' -> 'fer_lopez' ; 'Real Madrid Castilla' -> 'real_madrid_castilla'"""
+    nfkd = unicodedata.normalize("NFKD", str(nombre))
+    sin_tildes = "".join(c for c in nfkd if not unicodedata.combining(c))
+    limpio = sin_tildes.lower()
+    limpio = re.sub(r"[^a-z0-9]+", "_", limpio).strip("_")
+    return limpio
+
+
+@st.cache_data
+def cargar_urls_imagenes():
+    import os
+    ruta = "data/imagenes_urls.csv" if os.path.exists("data/imagenes_urls.csv") else "dashboard/data/imagenes_urls.csv"
+    if os.path.exists(ruta):
+        df_urls = pd.read_csv(ruta)
+        df_urls["clave"] = df_urls["tipo"] + "::" + df_urls["nombre"].apply(normaliza_nombre)
+        return dict(zip(df_urls["clave"], df_urls["url"]))
+    return {}
+
+
+def buscar_imagen(carpeta, nombre):
+    """Busca primero en el mapeo de URLs externas; si no, en assets/<carpeta>/<nombre>.<ext> local."""
+    tipo = "jugador" if carpeta == "jugadores" else "escudo"
+    urls = cargar_urls_imagenes()
+    clave = f"{tipo}::{normaliza_nombre(nombre)}"
+    if clave in urls and pd.notna(urls[clave]) and str(urls[clave]).strip():
+        return urls[clave]  # URL externa, se usa tal cual
+
+    base = normaliza_nombre(nombre)
+    for candidatos_dir in [f"assets/{carpeta}", f"dashboard/assets/{carpeta}"]:
+        for ext in ["jpg", "jpeg", "png", "webp"]:
+            ruta = f"{candidatos_dir}/{base}.{ext}"
+            if os.path.exists(ruta):
+                return ruta
+    return None
+
+
+@st.cache_data
+def imagen_a_data_uri(ruta):
+    """Convierte una imagen local a data URI para poder incrustarla en HTML (<img src=...>)."""
+    ext = ruta.split(".")[-1].lower()
+    mime = "jpeg" if ext in ("jpg", "jpeg") else ext
+    with open(ruta, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode()
+    return f"data:image/{mime};base64,{b64}"
+
+
+def img_html(ruta, size=48, radius="50%", border=None):
+    """HTML <img> listo para insertar en un f-string de markdown. Acepta tanto rutas locales como URLs http(s)."""
+    if ruta is None:
+        return ""
+    src = ruta if str(ruta).startswith("http") else imagen_a_data_uri(ruta)
+    borde = f"border:2px solid {border};" if border else ""
+    return (f'<img src="{src}" style="width:{size}px; height:{size}px; object-fit:cover; '
+            f'border-radius:{radius}; {borde}" referrerpolicy="no-referrer" loading="lazy">')
 
 st.markdown("""
 <style>
@@ -268,14 +329,21 @@ with tab_ficha:
     jugador = rfef.loc[idx_map[seleccion]]
     grupo = jugador["grupo"]
 
+    foto_jugador = buscar_imagen("jugadores", jugador["Jugador"])
+    escudo_equipo = buscar_imagen("escudos", jugador["Equipo"])
+
     st.markdown(
         f"""<div style="background:#FFFFFF; border:1px solid #E4E1D8; border-radius:10px;
-             padding:0.7rem 1.1rem; margin:0.3rem 0 0.9rem 0;
-             font-family:'Space Grotesk', sans-serif; font-weight:700;
-             color:#14213D; font-size:1.6rem;">
-             {jugador['Jugador']}
+             padding:0.7rem 1.1rem; margin:0.3rem 0 0.9rem 0; display:flex; align-items:center; gap:0.9rem;">
+             {img_html(foto_jugador, size=56, radius="50%", border="#E4E1D8")}
+             <div>
+             <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.6rem;
+                  display:flex; align-items:center; gap:0.5rem;">
+             {jugador['Jugador']} {img_html(escudo_equipo, size=26, radius="4px")}
+             </div>
              <span style="font-family:'Inter', sans-serif; font-weight:500; color:#6B7280; font-size:1rem;">
-             — {jugador['Equipo']} ({jugador['Temporada']})</span></div>""",
+             {jugador['Equipo']} ({jugador['Temporada']})</span>
+             </div></div>""",
         unsafe_allow_html=True,
     )
 
@@ -450,19 +518,24 @@ with tab_validacion:
             continue
         fila = fila.sort_values("score_final", ascending=False).iloc[0]
         color = GRUPO_COLOR.get(fila["grupo"], "#1B4332")
+        foto_v = buscar_imagen("jugadores", fila["Jugador"])
+        escudo_v = buscar_imagen("escudos", fila["Equipo"])
         st.markdown(
             f"""<div style="border:1px solid #E4E1D8; border-left:6px solid {color}; border-radius:10px;
                  padding:1.1rem 1.4rem; margin-bottom:0.9rem; display:flex; gap:1.4rem; align-items:flex-start;
                  background:#FFFFFF;">
                 <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color};
                      font-size:1.7rem; min-width:2.4rem; line-height:1.4;">{i:02d}</div>
+                {img_html(foto_v, size=64, radius="50%", border="#E4E1D8")}
                 <div style="flex:0 0 210px;">
                     <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D;
                          font-size:1.35rem; line-height:1.2;">{fila['Jugador']}</div>
                     <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color};
                          font-size:1.9rem; line-height:1.3; margin-top:0.2rem;">
                          {fila['score_final']:.1f} <span style="font-size:0.9rem; font-weight:500; color:#6B7280;">pts</span></div>
-                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.82rem; margin-top:0.2rem;">
+                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.82rem; margin-top:0.2rem;
+                         display:flex; align-items:center; gap:0.35rem;">
+                         {img_html(escudo_v, size=18, radius="3px")}
                          {fila['arquetipo_proyectado']} · {fila['Temporada']} · {fila['Equipo']}</div>
                 </div>
                 <div style="flex:1; font-family:'Inter', sans-serif; color:#14213D; font-size:0.95rem;
@@ -487,15 +560,21 @@ with tab_destacados:
         ultima = historial.sort_values("score_final", ascending=False).iloc[0]
         extra_row = destacados_extra[destacados_extra["Jugador"] == nombre]
         color = GRUPO_COLOR.get(ultima["grupo"], "#1B4332")
+        foto_d = buscar_imagen("jugadores", ultima["Jugador"])
+        escudo_d = buscar_imagen("escudos", ultima["Equipo"])
 
         with st.container(border=True):
             st.markdown(
-                f"""<div style="display:flex; align-items:baseline; gap:0.8rem; margin-bottom:0.3rem;">
+                f"""<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.3rem;">
+                    {img_html(foto_d, size=76, radius="50%", border="#E4E1D8")}
+                    <div>
                     <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.5rem;">
                     {ultima['Jugador']}</div>
-                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.95rem;">
+                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.95rem;
+                         display:flex; align-items:center; gap:0.4rem;">
+                    {img_html(escudo_d, size=18, radius="3px")}
                     {ultima['Equipo']} · última temporada en el dataset: {historial['Temporada'].iloc[-1]}</div>
-                    </div>""",
+                    </div></div>""",
                 unsafe_allow_html=True,
             )
             st.markdown(
