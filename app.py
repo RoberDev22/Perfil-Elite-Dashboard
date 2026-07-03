@@ -61,10 +61,20 @@ def imagen_a_data_uri(ruta):
     return f"data:image/{mime};base64,{b64}"
 
 
-def img_html(ruta, size=48, radius="50%", border=None):
-    """HTML <img> listo para insertar en un f-string de markdown. Acepta tanto rutas locales como URLs http(s)."""
+def silueta_svg(size=48):
+    """Icono neutro de 'sin foto disponible', igual que usan Transfermarkt/Sofascore."""
+    return f"""<svg width="{size}" height="{size}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"
+        style="border-radius:50%; background:#E4E1D8; flex-shrink:0;">
+        <circle cx="50" cy="38" r="18" fill="#AFA99A"/>
+        <path d="M50 58 C25 58 12 76 12 100 L88 100 C88 76 75 58 50 58 Z" fill="#AFA99A"/>
+        </svg>"""
+
+
+def img_html(ruta, size=48, radius="50%", border=None, con_silueta=False):
+    """HTML <img> listo para insertar en un f-string de markdown. Acepta tanto rutas locales como URLs http(s).
+    Si con_silueta=True y no hay ruta, devuelve un icono neutro de 'sin foto' en vez de nada."""
     if ruta is None:
-        return ""
+        return silueta_svg(size) if con_silueta else ""
     src = ruta if str(ruta).startswith("http") else imagen_a_data_uri(ruta)
     borde = f"border:2px solid {border};" if border else ""
     return (f'<img src="{src}" style="width:{size}px; height:{size}px; object-fit:cover; '
@@ -243,18 +253,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-with st.expander(":material/bug_report: Diagnóstico de imágenes (pulsa para comprobar por qué no se ven)"):
-    _urls_dict, _ruta_usada, _rutas_probadas = cargar_urls_imagenes()
-    if _ruta_usada:
-        st.success(f"Archivo encontrado en: `{_ruta_usada}` · {len(_urls_dict)} imágenes con URL cargadas.")
-        st.dataframe(pd.DataFrame(
-            [{"clave": k, "url": v} for k, v in _urls_dict.items()]
-        ), hide_index=True, width='stretch')
-    else:
-        st.error("No se encontró `imagenes_urls.csv` en ninguna de estas rutas: " + ", ".join(f"`{r}`" for r in _rutas_probadas))
-        st.caption("Comprueba en GitHub en qué carpeta exacta quedó el archivo — debería estar en `data/imagenes_urls.csv`.")
-    st.caption(f"Directorio de trabajo actual: `{os.getcwd()}`")
-
 tab_ranking, tab_ficha, tab_comparador, tab_validacion, tab_destacados = st.tabs(
     [":material/leaderboard: Ranking", ":material/badge: Ficha de jugador",
      ":material/compare_arrows: Comparador", ":material/verified: Validación empírica",
@@ -360,7 +358,7 @@ with tab_ficha:
     render_html(
         f"""<div style="background:#FFFFFF; border:1px solid #E4E1D8; border-radius:10px;
              padding:0.7rem 1.1rem; margin:0.3rem 0 0.9rem 0; display:flex; align-items:center; gap:0.9rem;">
-             {img_html(foto_jugador, size=56, radius="50%", border="#E4E1D8")}
+             {img_html(foto_jugador, size=56, radius="50%", border="#E4E1D8", con_silueta=True)}
              <div>
              <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.6rem;
                   display:flex; align-items:center; gap:0.5rem;">
@@ -549,7 +547,7 @@ with tab_validacion:
                  background:#FFFFFF;">
                 <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color};
                      font-size:1.7rem; min-width:2.4rem; line-height:1.4;">{i:02d}</div>
-                {img_html(foto_v, size=64, radius="50%", border="#E4E1D8")}
+                {img_html(foto_v, size=64, radius="50%", border="#E4E1D8", con_silueta=True)}
                 <div style="flex:0 0 210px;">
                     <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D;
                          font-size:1.35rem; line-height:1.2;">{fila['Jugador']}</div>
@@ -588,7 +586,7 @@ with tab_destacados:
         with st.container(border=True):
             render_html(
                 f"""<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.3rem;">
-                    {img_html(foto_d, size=76, radius="50%", border="#E4E1D8")}
+                    {img_html(foto_d, size=76, radius="50%", border="#E4E1D8", con_silueta=True)}
                     <div>
                     <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.5rem;">
                     {ultima['Jugador']}</div>
