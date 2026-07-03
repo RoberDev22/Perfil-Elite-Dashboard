@@ -22,18 +22,22 @@ def normaliza_nombre(nombre):
 @st.cache_data
 def cargar_urls_imagenes():
     import os
-    ruta = "data/imagenes_urls.csv" if os.path.exists("data/imagenes_urls.csv") else "dashboard/data/imagenes_urls.csv"
-    if os.path.exists(ruta):
-        df_urls = pd.read_csv(ruta)
-        df_urls["clave"] = df_urls["tipo"] + "::" + df_urls["nombre"].apply(normaliza_nombre)
-        return dict(zip(df_urls["clave"], df_urls["url"]))
-    return {}
+    candidatos = [
+        "data/imagenes_urls.csv", "dashboard/data/imagenes_urls.csv",
+        "imagenes_urls.csv", "./imagenes_urls.csv",
+    ]
+    for ruta in candidatos:
+        if os.path.exists(ruta):
+            df_urls = pd.read_csv(ruta)
+            df_urls["clave"] = df_urls["tipo"] + "::" + df_urls["nombre"].apply(normaliza_nombre)
+            return dict(zip(df_urls["clave"], df_urls["url"])), ruta, candidatos
+    return {}, None, candidatos
 
 
 def buscar_imagen(carpeta, nombre):
     """Busca primero en el mapeo de URLs externas; si no, en assets/<carpeta>/<nombre>.<ext> local."""
     tipo = "jugador" if carpeta == "jugadores" else "escudo"
-    urls = cargar_urls_imagenes()
+    urls, _, _ = cargar_urls_imagenes()
     clave = f"{tipo}::{normaliza_nombre(nombre)}"
     if clave in urls and pd.notna(urls[clave]) and str(urls[clave]).strip():
         return urls[clave]  # URL externa, se usa tal cual
@@ -238,6 +242,18 @@ st.markdown("""
     · TFM Big Data Aplicado al Scouting en Fútbol</p>
 </div>
 """, unsafe_allow_html=True)
+
+with st.expander(":material/bug_report: Diagnóstico de imágenes (pulsa para comprobar por qué no se ven)"):
+    _urls_dict, _ruta_usada, _rutas_probadas = cargar_urls_imagenes()
+    if _ruta_usada:
+        st.success(f"Archivo encontrado en: `{_ruta_usada}` · {len(_urls_dict)} imágenes con URL cargadas.")
+        st.dataframe(pd.DataFrame(
+            [{"clave": k, "url": v} for k, v in _urls_dict.items()]
+        ), hide_index=True, width='stretch')
+    else:
+        st.error("No se encontró `imagenes_urls.csv` en ninguna de estas rutas: " + ", ".join(f"`{r}`" for r in _rutas_probadas))
+        st.caption("Comprueba en GitHub en qué carpeta exacta quedó el archivo — debería estar en `data/imagenes_urls.csv`.")
+    st.caption(f"Directorio de trabajo actual: `{os.getcwd()}`")
 
 tab_ranking, tab_ficha, tab_comparador, tab_validacion, tab_destacados = st.tabs(
     [":material/leaderboard: Ranking", ":material/badge: Ficha de jugador",
