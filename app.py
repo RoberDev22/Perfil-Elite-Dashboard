@@ -129,10 +129,11 @@ def cargar_datos():
 
     rfef = pd.read_csv(buscar("rfef_final_con_shap.csv"))
     laliga = pd.read_csv(buscar("laliga_arquetipos_fase_a.csv"))
-    return rfef, laliga
+    destacados_extra = pd.read_csv(buscar("destacados_perfil_extra.csv"))
+    return rfef, laliga, destacados_extra
 
 
-rfef, laliga = cargar_datos()
+rfef, laliga, destacados_extra = cargar_datos()
 
 # percentiles dentro de cada grupo (para el radar), calculados una vez
 percentiles = {}
@@ -168,9 +169,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-tab_ranking, tab_ficha, tab_comparador, tab_validacion = st.tabs(
+tab_ranking, tab_ficha, tab_comparador, tab_validacion, tab_destacados = st.tabs(
     [":material/leaderboard: Ranking", ":material/badge: Ficha de jugador",
-     ":material/compare_arrows: Comparador", ":material/verified: Validación empírica"]
+     ":material/compare_arrows: Comparador", ":material/verified: Validación empírica",
+     ":material/star: Jugadores destacados"]
 )
 
 # ---------------------------------------------------------------------------
@@ -459,3 +461,75 @@ with tab_validacion:
                 </div>""",
             unsafe_allow_html=True,
         )
+
+# ---------------------------------------------------------------------------
+# TAB 5 — Jugadores destacados
+# ---------------------------------------------------------------------------
+
+with tab_destacados:
+    st.subheader("Jugadores destacados: ficha ampliada de los casos de validación")
+    st.caption("Perfil físico, contractual y evolución del score a lo largo de las temporadas disponibles, "
+               "para los mismos 7 casos de la pestaña de Validación empírica.")
+
+    for nombre in VALIDACION_EMPIRICA:
+        historial = rfef[rfef["Jugador"] == nombre].sort_values("Temporada")
+        if historial.empty:
+            continue
+        ultima = historial.sort_values("score_final", ascending=False).iloc[0]
+        extra_row = destacados_extra[destacados_extra["Jugador"] == nombre]
+        color = GRUPO_COLOR.get(ultima["grupo"], "#1B4332")
+
+        with st.container(border=True):
+            st.markdown(
+                f"""<div style="display:flex; align-items:baseline; gap:0.8rem; margin-bottom:0.3rem;">
+                    <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.5rem;">
+                    {ultima['Jugador']}</div>
+                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.95rem;">
+                    {ultima['Equipo']} · última temporada en el dataset: {historial['Temporada'].iloc[-1]}</div>
+                    </div>""",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f"""<div style="background:{color}1A; border:1px solid {color}; border-radius:8px;
+                     padding:0.4rem 0.9rem; display:inline-block; font-family:'Space Grotesk', sans-serif;
+                     font-weight:600; color:#14213D; font-size:0.95rem; margin-bottom:0.8rem;">
+                     {ultima['arquetipo_proyectado']} · {ultima['grupo']}</div>""",
+                unsafe_allow_html=True,
+            )
+
+            if not extra_row.empty:
+                e = extra_row.iloc[0]
+                chips = [
+                    ("Altura", f"{int(e['Altura'])} cm" if pd.notna(e["Altura"]) and e["Altura"] > 0 else "N/D"),
+                    ("Pie", str(e["Pie"]).capitalize() if pd.notna(e["Pie"]) else "N/D"),
+                    ("Nacionalidad", str(e["Pasaporte"]) if pd.notna(e["Pasaporte"]) else "N/D"),
+                    ("Minutos jugados (su mejor temporada)", f"{int(ultima['Minutos jugados'])} min"),
+                    ("Contrato (en su etapa RFEF)", str(e["Vencimiento contrato"]) if pd.notna(e["Vencimiento contrato"]) else "N/D"),
+                ]
+                cols_chip = st.columns(len(chips))
+                for col, (label, val) in zip(cols_chip, chips):
+                    col.markdown(
+                        f"""<div style="background:#FAF9F6; border:1px solid #E4E1D8; border-radius:8px;
+                             padding:0.5rem 0.6rem; text-align:center; height:100%;">
+                             <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.72rem;">{label}</div>
+                             <div style="font-family:'Space Grotesk', sans-serif; color:#14213D; font-weight:600; font-size:0.95rem;">{val}</div>
+                             </div>""",
+                        unsafe_allow_html=True,
+                    )
+
+            colE, colF = st.columns([1, 1.4])
+            with colE:
+                st.markdown(f"<div style='margin-top:0.9rem; font-family:Inter, sans-serif; color:#14213D; font-size:0.95rem;'>{VALIDACION_TEXTO.get(nombre, '')}</div>", unsafe_allow_html=True)
+            with colF:
+                fig_evo = go.Figure(go.Scatter(
+                    x=historial["Temporada"], y=historial["score_final"],
+                    mode="lines+markers", line=dict(color=color, width=3), marker=dict(size=9),
+                ))
+                fig_evo.update_layout(
+                    height=220, margin=dict(l=40, r=20, t=25, b=30),
+                    title=dict(text="Evolución del score por temporada", font=dict(size=13, family="Space Grotesk, sans-serif")),
+                    font=dict(family="Inter, sans-serif", color="#14213D", size=11),
+                    paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+                    yaxis=dict(range=[0, 100], gridcolor="#EDEBE4"), xaxis=dict(gridcolor="#EDEBE4"),
+                )
+                st.plotly_chart(fig_evo, width='stretch')
