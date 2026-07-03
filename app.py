@@ -66,6 +66,15 @@ def img_html(ruta, size=48, radius="50%", border=None):
     return (f'<img src="{src}" style="width:{size}px; height:{size}px; object-fit:cover; '
             f'border-radius:{radius}; {borde}" referrerpolicy="no-referrer" loading="lazy">')
 
+
+def render_html(html, container=None):
+    """st.markdown con HTML, pero quitando la indentación de cada línea antes de renderizar.
+    Si no se hace esto, Markdown interpreta las líneas con 4+ espacios de sangría como
+    bloque de código y muestra el HTML como texto en vez de interpretarlo."""
+    destino = container if container is not None else st
+    limpio = " ".join(line.strip() for line in html.strip().split("\n"))
+    destino.markdown(limpio, unsafe_allow_html=True)
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
@@ -332,7 +341,7 @@ with tab_ficha:
     foto_jugador = buscar_imagen("jugadores", jugador["Jugador"])
     escudo_equipo = buscar_imagen("escudos", jugador["Equipo"])
 
-    st.markdown(
+    render_html(
         f"""<div style="background:#FFFFFF; border:1px solid #E4E1D8; border-radius:10px;
              padding:0.7rem 1.1rem; margin:0.3rem 0 0.9rem 0; display:flex; align-items:center; gap:0.9rem;">
              {img_html(foto_jugador, size=56, radius="50%", border="#E4E1D8")}
@@ -343,8 +352,7 @@ with tab_ficha:
              </div>
              <span style="font-family:'Inter', sans-serif; font-weight:500; color:#6B7280; font-size:1rem;">
              {jugador['Equipo']} ({jugador['Temporada']})</span>
-             </div></div>""",
-        unsafe_allow_html=True,
+             </div></div>"""
     )
 
     colA, colB = st.columns([1, 1.3])
@@ -379,15 +387,14 @@ with tab_ficha:
         )
         st.plotly_chart(fig_dist, width='stretch')
 
-        st.markdown(
+        render_html(
             f"""<div style="background:#EAF2EC; border:1px solid #1B4332; border-left:5px solid #1B4332;
                  border-radius:10px; padding:0.55rem 1rem; margin:0.6rem 0 0.9rem 0;
                  font-family:'Space Grotesk', sans-serif; font-weight:600; color:#14213D; font-size:1.05rem;">
                  {jugador['arquetipo_proyectado']}
                  <span style="font-family:'Inter', sans-serif; font-weight:500; color:#6B7280; font-size:0.8rem;">
                  · arquetipo proyectado ({grupo})</span>
-                 </div>""",
-            unsafe_allow_html=True,
+                 </div>"""
         )
 
         c2, c3 = st.columns(2)
@@ -520,7 +527,7 @@ with tab_validacion:
         color = GRUPO_COLOR.get(fila["grupo"], "#1B4332")
         foto_v = buscar_imagen("jugadores", fila["Jugador"])
         escudo_v = buscar_imagen("escudos", fila["Equipo"])
-        st.markdown(
+        render_html(
             f"""<div style="border:1px solid #E4E1D8; border-left:6px solid {color}; border-radius:10px;
                  padding:1.1rem 1.4rem; margin-bottom:0.9rem; display:flex; gap:1.4rem; align-items:flex-start;
                  background:#FFFFFF;">
@@ -540,8 +547,7 @@ with tab_validacion:
                 </div>
                 <div style="flex:1; font-family:'Inter', sans-serif; color:#14213D; font-size:0.95rem;
                      line-height:1.5; padding-top:0.2rem;">{VALIDACION_TEXTO.get(nombre, "")}</div>
-                </div>""",
-            unsafe_allow_html=True,
+                </div>"""
         )
 
 # ---------------------------------------------------------------------------
@@ -564,7 +570,7 @@ with tab_destacados:
         escudo_d = buscar_imagen("escudos", ultima["Equipo"])
 
         with st.container(border=True):
-            st.markdown(
+            render_html(
                 f"""<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.3rem;">
                     {img_html(foto_d, size=76, radius="50%", border="#E4E1D8")}
                     <div>
@@ -574,15 +580,13 @@ with tab_destacados:
                          display:flex; align-items:center; gap:0.4rem;">
                     {img_html(escudo_d, size=18, radius="3px")}
                     {ultima['Equipo']} · última temporada en el dataset: {historial['Temporada'].iloc[-1]}</div>
-                    </div></div>""",
-                unsafe_allow_html=True,
+                    </div></div>"""
             )
-            st.markdown(
+            render_html(
                 f"""<div style="background:{color}1A; border:1px solid {color}; border-radius:8px;
                      padding:0.4rem 0.9rem; display:inline-block; font-family:'Space Grotesk', sans-serif;
                      font-weight:600; color:#14213D; font-size:0.95rem; margin-bottom:0.8rem;">
-                     {ultima['arquetipo_proyectado']} · {ultima['grupo']}</div>""",
-                unsafe_allow_html=True,
+                     {ultima['arquetipo_proyectado']} · {ultima['grupo']}</div>"""
             )
 
             if not extra_row.empty:
@@ -596,13 +600,13 @@ with tab_destacados:
                 ]
                 cols_chip = st.columns(len(chips))
                 for col, (label, val) in zip(cols_chip, chips):
-                    col.markdown(
+                    render_html(
                         f"""<div style="background:#FAF9F6; border:1px solid #E4E1D8; border-radius:8px;
                              padding:0.5rem 0.6rem; text-align:center; height:100%;">
                              <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.72rem;">{label}</div>
                              <div style="font-family:'Space Grotesk', sans-serif; color:#14213D; font-weight:600; font-size:0.95rem;">{val}</div>
                              </div>""",
-                        unsafe_allow_html=True,
+                        container=col,
                     )
 
             colE, colF = st.columns([1, 1.4])
