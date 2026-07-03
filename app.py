@@ -523,30 +523,39 @@ with tab_destacados:
             with colF:
                 grupo_hist = ultima["grupo"]
                 media_grupo_hist = stats_score[grupo_hist]["media"]
+                valores_grupo = stats_score[grupo_hist]["valores"]
+
+                rng = np.random.default_rng(abs(hash(grupo_hist)) % (2**32))
+                jitter = rng.uniform(-0.42, 0.42, size=len(valores_grupo))
+
                 fig_evo = go.Figure()
-                fig_evo.add_trace(go.Histogram(
-                    x=stats_score[grupo_hist]["valores"], nbinsx=30,
-                    marker_color="#D8D4C8", opacity=0.9, name="Resto del grupo",
+                fig_evo.add_trace(go.Scatter(
+                    x=valores_grupo, y=jitter, mode="markers", name="Resto del grupo",
+                    marker=dict(size=6, color="#D8D4C8", opacity=0.65, line=dict(width=0)),
+                    hoverinfo="skip",
                 ))
-                # línea de la media del grupo (referencia fija)
                 fig_evo.add_vline(x=media_grupo_hist, line_width=1, line_dash="dot", line_color="#6B7280",
                                    annotation_text="media", annotation_font=dict(size=10, color="#6B7280"))
-                # una línea por cada temporada disponible de este jugador
-                estilos = [dict(line_dash="solid", line_width=3), dict(line_dash="dash", line_width=3), dict(line_dash="dot", line_width=3)]
+
                 for i_temp, (_, fila_t) in enumerate(historial.iterrows()):
-                    fig_evo.add_vline(
-                        x=fila_t["score_final"], line_color=color, **estilos[min(i_temp, len(estilos) - 1)],
-                        annotation_text=f"{fila_t['Temporada']}: {fila_t['score_final']:.1f}",
-                        annotation_position="top" if i_temp % 2 == 0 else "bottom",
-                        annotation_font=dict(size=10, color=color, family="Space Grotesk, sans-serif"),
-                    )
+                    y_off = 0 if len(historial) == 1 else (0.55 if i_temp % 2 == 0 else -0.55)
+                    fig_evo.add_trace(go.Scatter(
+                        x=[fila_t["score_final"]], y=[y_off], mode="markers+text",
+                        marker=dict(size=16, color=color, line=dict(width=2, color="#FFFFFF")),
+                        text=[f"{fila_t['Temporada']}: {fila_t['score_final']:.1f}"],
+                        textposition="top center" if y_off >= 0 else "bottom center",
+                        textfont=dict(size=11, color=color, family="Space Grotesk, sans-serif"),
+                        showlegend=False, hoverinfo="skip",
+                    ))
+
                 fig_evo.update_layout(
-                    height=260, margin=dict(l=40, r=20, t=45, b=30), showlegend=False,
-                    title=dict(text=f"Dónde cae cada temporada dentro de la distribución de {grupo_hist.lower()}s (1ª RFEF)",
+                    height=260, margin=dict(l=20, r=20, t=45, b=30), showlegend=False,
+                    title=dict(text=f"Su score frente al resto de {grupo_hist.lower()}s analizados en 1ª RFEF",
                                font=dict(size=12, family="Space Grotesk, sans-serif")),
                     font=dict(family="Inter, sans-serif", color="#14213D", size=11),
                     paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
-                    yaxis_visible=False, xaxis=dict(gridcolor="#EDEBE4", title="Score final"),
+                    yaxis=dict(visible=False, range=[-1.3, 1.3]),
+                    xaxis=dict(gridcolor="#EDEBE4", title="Score final"),
                 )
                 st.plotly_chart(fig_evo, width='stretch')
                 if len(historial) > 1:
