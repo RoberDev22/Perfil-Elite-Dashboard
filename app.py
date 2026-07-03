@@ -435,7 +435,16 @@ with tab_validacion:
     st.subheader("Validación empírica: casos reales detectados por el sistema")
     st.caption("Jugadores que el modelo puntuó alto en 1ª RFEF y que después confirmaron su proyección en LaLiga o en clubes de mayor nivel.")
 
-    for i, nombre in enumerate(VALIDACION_EMPIRICA, start=1):
+    # ordenar por score final (de mayor a menor) antes de numerar
+    orden_validacion = []
+    for nombre in VALIDACION_EMPIRICA:
+        fila_tmp = rfef[rfef["Jugador"] == nombre]
+        if fila_tmp.empty:
+            continue
+        orden_validacion.append((nombre, fila_tmp["score_final"].max()))
+    orden_validacion = [n for n, _ in sorted(orden_validacion, key=lambda t: t[1], reverse=True)]
+
+    for i, nombre in enumerate(orden_validacion, start=1):
         fila = rfef[rfef["Jugador"] == nombre]
         if fila.empty:
             continue
