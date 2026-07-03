@@ -521,15 +521,37 @@ with tab_destacados:
             with colE:
                 st.markdown(f"<div style='margin-top:0.9rem; font-family:Inter, sans-serif; color:#14213D; font-size:0.95rem;'>{VALIDACION_TEXTO.get(nombre, '')}</div>", unsafe_allow_html=True)
             with colF:
-                fig_evo = go.Figure(go.Scatter(
-                    x=historial["Temporada"], y=historial["score_final"],
-                    mode="lines+markers", line=dict(color=color, width=3), marker=dict(size=9),
+                grupo_hist = ultima["grupo"]
+                media_grupo_hist = stats_score[grupo_hist]["media"]
+                fig_evo = go.Figure()
+                fig_evo.add_trace(go.Histogram(
+                    x=stats_score[grupo_hist]["valores"], nbinsx=30,
+                    marker_color="#D8D4C8", opacity=0.9, name="Resto del grupo",
                 ))
+                # línea de la media del grupo (referencia fija)
+                fig_evo.add_vline(x=media_grupo_hist, line_width=1, line_dash="dot", line_color="#6B7280",
+                                   annotation_text="media", annotation_font=dict(size=10, color="#6B7280"))
+                # una línea por cada temporada disponible de este jugador
+                estilos = [dict(line_dash="solid", line_width=3), dict(line_dash="dash", line_width=3), dict(line_dash="dot", line_width=3)]
+                for i_temp, (_, fila_t) in enumerate(historial.iterrows()):
+                    fig_evo.add_vline(
+                        x=fila_t["score_final"], line_color=color, **estilos[min(i_temp, len(estilos) - 1)],
+                        annotation_text=f"{fila_t['Temporada']}: {fila_t['score_final']:.1f}",
+                        annotation_position="top" if i_temp % 2 == 0 else "bottom",
+                        annotation_font=dict(size=10, color=color, family="Space Grotesk, sans-serif"),
+                    )
                 fig_evo.update_layout(
-                    height=220, margin=dict(l=40, r=20, t=25, b=30),
-                    title=dict(text="Evolución del score por temporada", font=dict(size=13, family="Space Grotesk, sans-serif")),
+                    height=260, margin=dict(l=40, r=20, t=45, b=30), showlegend=False,
+                    title=dict(text=f"Dónde cae cada temporada dentro de la distribución de {grupo_hist.lower()}s (1ª RFEF)",
+                               font=dict(size=12, family="Space Grotesk, sans-serif")),
                     font=dict(family="Inter, sans-serif", color="#14213D", size=11),
                     paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
-                    yaxis=dict(range=[0, 100], gridcolor="#EDEBE4"), xaxis=dict(gridcolor="#EDEBE4"),
+                    yaxis_visible=False, xaxis=dict(gridcolor="#EDEBE4", title="Score final"),
                 )
                 st.plotly_chart(fig_evo, width='stretch')
+                if len(historial) > 1:
+                    delta = historial["score_final"].iloc[-1] - historial["score_final"].iloc[0]
+                    signo = "subió" if delta > 0 else "bajó"
+                    st.caption(f"Entre {historial['Temporada'].iloc[0]} y {historial['Temporada'].iloc[-1]} el score {signo} "
+                               f"{abs(delta):.1f} puntos — recuerda que el score es relativo al resto del grupo de esa "
+                               f"temporada, así que también refleja cambios en el nivel general del grupo, no solo en el jugador.")
