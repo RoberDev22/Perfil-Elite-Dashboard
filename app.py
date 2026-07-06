@@ -585,7 +585,8 @@ with tab_destacados:
 
         with st.container(border=True):
             render_html(
-                f"""<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.3rem;">
+                f"""<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.3rem;
+                     background:#FFFFFF; border-radius:10px; padding:0.6rem 0.9rem;">
                     {img_html(foto_d, size=76, radius="50%", border="#E4E1D8", con_silueta=True)}
                     <div>
                     <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.5rem;">
@@ -597,8 +598,8 @@ with tab_destacados:
                     </div></div>"""
             )
             render_html(
-                f"""<div style="background:{color}1A; border:1px solid {color}; border-radius:8px;
-                     padding:0.4rem 0.9rem; display:inline-block; font-family:'Space Grotesk', sans-serif;
+                f"""<div style="background:#FFFFFF; border:1px solid {color}; border-left:5px solid {color};
+                     border-radius:8px; padding:0.4rem 0.9rem; display:inline-block; font-family:'Space Grotesk', sans-serif;
                      font-weight:600; color:#14213D; font-size:0.95rem; margin-bottom:0.8rem;">
                      {ultima['arquetipo_proyectado']} · {ultima['grupo']}</div>"""
             )
@@ -625,7 +626,13 @@ with tab_destacados:
 
             colE, colF = st.columns([1, 1.4])
             with colE:
-                st.markdown(f"<div style='margin-top:0.9rem; font-family:Inter, sans-serif; color:#14213D; font-size:0.95rem;'>{VALIDACION_TEXTO.get(nombre, '')}</div>", unsafe_allow_html=True)
+                render_html(
+                    f"""<div style="background:#FFFFFF; border:1px solid #E4E1D8; border-radius:10px;
+                         padding:0.8rem 1rem; margin-top:0.9rem; font-family:'Inter', sans-serif; color:#14213D;
+                         font-size:0.95rem; line-height:1.5;">
+                         {VALIDACION_TEXTO.get(nombre, '')}</div>""",
+                    container=colE,
+                )
             with colF:
                 grupo_hist = ultima["grupo"]
                 media_grupo_hist = stats_score[grupo_hist]["media"]
