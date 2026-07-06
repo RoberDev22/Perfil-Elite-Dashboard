@@ -6,6 +6,7 @@ import os
 import re
 import unicodedata
 import base64
+import urllib.request
 
 st.set_page_config(page_title="Perfil de Élite — Scouting Dashboard", layout="wide", page_icon=":material/sports_soccer:")
 
@@ -34,13 +35,35 @@ def cargar_urls_imagenes():
     return {}, None, candidatos
 
 
+@st.cache_data(show_spinner=False)
+def url_a_data_uri_remota(url):
+    """Descarga una imagen remota UNA VEZ (cacheada en el servidor) y la convierte en
+    data URI. Los escudos de Sofascore a veces responden 503 (rate limiting) si muchos
+    usuarios piden la imagen directamente al CDN a la vez (p.ej. al cargar la tabla de
+    Ranking, que pide decenas de escudos de golpe). Descargándola en el servidor y
+    cacheándola evitamos que cada visitante dispare su propia petición al CDN externo."""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            data = resp.read()
+            content_type = resp.headers.get("Content-Type", "image/png")
+        ext = "jpeg" if "jpeg" in content_type else ("svg+xml" if "svg" in content_type else "png")
+        b64 = base64.b64encode(data).decode()
+        return f"data:image/{ext};base64,{b64}"
+    except Exception:
+        return url  # si falla la descarga, devolvemos la URL tal cual (mismo comportamiento que antes)
+
+
 def buscar_imagen(carpeta, nombre):
     """Busca primero en el mapeo de URLs externas; si no, en assets/<carpeta>/<nombre>.<ext> local."""
     tipo = "jugador" if carpeta == "jugadores" else "escudo"
     urls, _, _ = cargar_urls_imagenes()
     clave = f"{tipo}::{normaliza_nombre(nombre)}"
     if clave in urls and pd.notna(urls[clave]) and str(urls[clave]).strip():
-        return urls[clave]  # URL externa, se usa tal cual
+        url = urls[clave]
+        if tipo == "escudo" and str(url).startswith("http"):
+            return url_a_data_uri_remota(url)
+        return url  # URL externa, se usa tal cual
 
     base = normaliza_nombre(nombre)
     for candidatos_dir in [f"assets/{carpeta}", f"dashboard/assets/{carpeta}"]:
