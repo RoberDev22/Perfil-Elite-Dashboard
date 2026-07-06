@@ -333,10 +333,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-tab_ranking, tab_ficha, tab_comparador, tab_validacion, tab_destacados = st.tabs(
+tab_ranking, tab_ficha, tab_comparador, tab_validacion, tab_destacados, tab_fuera_rfef = st.tabs(
     [":material/leaderboard: Ranking", ":material/badge: Ficha de jugador",
      ":material/compare_arrows: Comparador", ":material/verified: Validación empírica",
-     ":material/star: Jugadores destacados"]
+     ":material/star: Jugadores destacados", ":material/rocket_launch: Fuera de RFEF"]
 )
 
 # ---------------------------------------------------------------------------
@@ -841,3 +841,100 @@ with tab_destacados:
                                     f"temporada, así que también refleja cambios en el nivel general del grupo, no solo en el jugador.")
 
                 st.caption(explicacion)
+
+# ---------------------------------------------------------------------------
+# TAB 6 — Fuera de RFEF
+# ---------------------------------------------------------------------------
+
+FUERA_RFEF = ["Lamine Yamal"]
+FUERA_RFEF_TEXTO = {
+    "Lamine Yamal": ("Saltó directamente de las categorías inferiores del FC Barcelona al primer equipo, "
+                      "sin pasar por el Barça Atlètic (que sí compite en 1ª RFEF). Por eso no forma parte "
+                      "del pool de prospectos que analiza el modelo de esta herramienta — se incluye aquí "
+                      "como caso de referencia: un extremo que nunca necesitó el peldaño de la RFEF para "
+                      "llegar a la élite."),
+}
+
+with tab_fuera_rfef:
+    st.subheader("Jugadores que llegaron a LaLiga sin pasar por 1ª RFEF")
+    st.caption("Esta pestaña queda fuera del modelo de proyección RFEF → LaLiga: son casos excepcionales "
+               "que se saltaron ese peldaño formativo. Se muestran aquí como referencia y contexto, no "
+               "como prospectos evaluados por el sistema. De momento solo hay un caso; la sección está "
+               "pensada para poder añadir más si aparecen.")
+
+    for nombre in FUERA_RFEF:
+        historial = laliga[laliga["Jugador"] == nombre].sort_values("Temporada")
+        if historial.empty:
+            continue
+        ultima = historial.iloc[-1]
+        color = GRUPO_COLOR.get(ultima["grupo"], "#2E9E5B")
+        foto = buscar_imagen("jugadores", nombre)
+        escudo = buscar_imagen("escudos", ultima["Equipo"])
+
+        with st.container(border=True):
+            render_html(
+                f"""<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.3rem;
+                     background:#FFFFFF; border-radius:10px; padding:0.6rem 0.9rem;">
+                    {img_html(foto, size=76, radius="50%", border="#E4E1D8", con_silueta=True)}
+                    <div>
+                    <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.5rem;">
+                    {nombre}</div>
+                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.95rem;
+                         display:flex; align-items:center; gap:0.4rem;">
+                    {img_html(escudo, size=24, radius="3px")}
+                    {ultima['Equipo']} · {int(ultima['Edad'])} años</div>
+                    </div></div>"""
+            )
+
+            render_html(
+                f"""<div style="background:#FFFFFF; border:1px solid {color}; border-left:5px solid {color};
+                     border-radius:8px; padding:0.4rem 0.9rem; display:inline-flex; align-items:center;
+                     font-family:'Space Grotesk', sans-serif; font-weight:600; color:#14213D; font-size:0.95rem;
+                     margin-bottom:0.6rem;">
+                     {ultima['arquetipo']} · {ultima['grupo']}</div>"""
+            )
+
+            st.caption(f"🚀 {FUERA_RFEF_TEXTO.get(nombre, '')}")
+
+            chips = [
+                ("Altura", f"{int(ultima['Altura'])} cm" if pd.notna(ultima["Altura"]) and ultima["Altura"] > 0 else "N/D"),
+                ("Pie", str(ultima["Pie"]).capitalize() if pd.notna(ultima["Pie"]) else "N/D"),
+                ("Nacionalidad", str(ultima["Pasaporte"]) if pd.notna(ultima["Pasaporte"]) else "N/D"),
+                ("Vencimiento de contrato", str(ultima["Vencimiento contrato"]) if pd.notna(ultima["Vencimiento contrato"]) else "N/D"),
+            ]
+            cols_chip = st.columns(len(chips))
+            for col, (label, val) in zip(cols_chip, chips):
+                render_html(
+                    f"""<div style="background:#FAF9F6; border:1px solid #E4E1D8; border-radius:8px;
+                         padding:0.5rem 0.6rem; text-align:center; height:100%;">
+                         <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.72rem;">{label}</div>
+                         <div style="font-family:'Space Grotesk', sans-serif; color:#14213D; font-weight:600; font-size:0.95rem;">{val}</div>
+                         </div>""",
+                    container=col,
+                )
+
+            st.markdown("##### Evolución por temporada en LaLiga")
+            fig_fuera = go.Figure()
+            fig_fuera.add_trace(go.Bar(
+                x=historial["Temporada"], y=historial["Goles"], name="Goles",
+                marker_color=color,
+            ))
+            fig_fuera.add_trace(go.Scatter(
+                x=historial["Temporada"], y=historial["xG"], name="xG", mode="lines+markers",
+                line=dict(color="#14213D", width=2), marker=dict(size=8),
+            ))
+            fig_fuera.update_layout(
+                height=320, margin=dict(l=20, r=20, t=20, b=30),
+                font=dict(family="Inter, sans-serif", color="#14213D"),
+                paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+                legend=dict(font=dict(family="Space Grotesk, sans-serif", size=12)),
+                yaxis=dict(gridcolor="#EDEBE4"),
+            )
+            st.plotly_chart(fig_fuera, width='stretch')
+
+            tabla_hist = historial[["Temporada", "Partidos jugados", "Minutos jugados",
+                                     "Goles", "xG", "Asistencias", "xA"]].reset_index(drop=True)
+            tabla_hist = tabla_hist.rename(columns={
+                "Partidos jugados": "Partidos", "Minutos jugados": "Minutos",
+            }).round({"xG": 2, "xA": 2})
+            st.dataframe(tabla_hist, hide_index=True, width='stretch')
