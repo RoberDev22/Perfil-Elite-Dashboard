@@ -289,18 +289,23 @@ tab_ranking, tab_ficha, tab_comparador, tab_validacion, tab_destacados = st.tabs
 with tab_ranking:
     st.subheader("Ranking de jugadores de 1ª RFEF proyectados sobre el espacio de LaLiga")
 
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        grupos_sel = st.multiselect("Posición", sorted(rfef["grupo"].unique()),
-                                     default=sorted(rfef["grupo"].unique()))
-    with col2:
-        arquetipos_disp = sorted(rfef[rfef["grupo"].isin(grupos_sel)]["arquetipo_proyectado"].unique()) if grupos_sel else []
-        arquetipos_sel = st.multiselect("Arquetipo", arquetipos_disp, default=arquetipos_disp)
-    with col3:
-        temporadas_sel = st.multiselect("Temporada", sorted(rfef["Temporada"].unique()),
-                                         default=sorted(rfef["Temporada"].unique()))
-    with col4:
-        score_min = st.slider("Score mínimo", 0, 100, 0)
+    with st.container(border=True):
+        st.markdown("**Filtros**")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            grupos_sel = st.multiselect("Posición", sorted(rfef["grupo"].unique()),
+                                         default=sorted(rfef["grupo"].unique()),
+                                         placeholder="Elige una o varias opciones")
+        with col2:
+            arquetipos_disp = sorted(rfef[rfef["grupo"].isin(grupos_sel)]["arquetipo_proyectado"].unique()) if grupos_sel else []
+            arquetipos_sel = st.multiselect("Arquetipo", arquetipos_disp, default=arquetipos_disp,
+                                             placeholder="Elige una o varias opciones")
+        with col3:
+            temporadas_sel = st.multiselect("Temporada", sorted(rfef["Temporada"].unique()),
+                                             default=sorted(rfef["Temporada"].unique()),
+                                             placeholder="Elige una o varias opciones")
+        with col4:
+            score_min = st.slider("Score mínimo", 0, 100, 0)
 
     filtro = (
         rfef["grupo"].isin(grupos_sel)
@@ -310,58 +315,75 @@ with tab_ranking:
     )
     tabla = rfef[filtro].sort_values("score_final", ascending=False)
 
+    GRUPO_EMOJI = {"Extremo": "🟢", "Mediapunta": "🔵", "Delantero": "🟠"}
+
     st.write(f"**{len(tabla)}** jugadores cumplen los filtros.")
+
+    tabla_display = tabla[["Jugador", "Equipo", "Edad", "Temporada", "grupo", "arquetipo_proyectado",
+                            "similitud_coseno", "score_final", "percentil_score"]].copy()
+    tabla_display.insert(0, "Foto", tabla["Jugador"].apply(lambda n: buscar_imagen("jugadores", n)))
+    tabla_display.insert(2, "Escudo", tabla["Equipo"].apply(lambda n: buscar_imagen("escudos", n)))
+    tabla_display["grupo"] = tabla_display["grupo"].apply(lambda g: f"{GRUPO_EMOJI.get(g, '⚪')} {g}")
+    tabla_display = tabla_display.rename(columns={
+        "grupo": "Posición", "arquetipo_proyectado": "Arquetipo",
+        "similitud_coseno": "Similitud", "score_final": "Score",
+        "percentil_score": "Percentil",
+    }).round({"Similitud": 3, "Score": 1, "Percentil": 0})
+
     st.dataframe(
-        tabla[["Jugador", "Equipo", "Edad", "Temporada", "grupo", "arquetipo_proyectado",
-               "similitud_coseno", "score_final", "percentil_score"]]
-        .rename(columns={"grupo": "Posición", "arquetipo_proyectado": "Arquetipo",
-                          "similitud_coseno": "Similitud", "score_final": "Score",
-                          "percentil_score": "Percentil (vs. su posición)"})
-        .round({"Similitud": 3, "Score": 1, "Percentil (vs. su posición)": 0}),
+        tabla_display,
         width='stretch',
         hide_index=True,
         height=520,
+        column_config={
+            "Foto": st.column_config.ImageColumn("Foto", width="small"),
+            "Escudo": st.column_config.ImageColumn("Escudo", width="small"),
+            "Score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%.1f"),
+            "Percentil": st.column_config.ProgressColumn("Percentil (vs. su posición)", min_value=0, max_value=100, format="%.0f"),
+        },
     )
 
-    st.markdown("#### Edad vs. Score — dónde están los perfiles jóvenes con puntuación alta")
-    fig_scatter = go.Figure()
-    for grupo_s in sorted(tabla["grupo"].unique()):
-        sub = tabla[tabla["grupo"] == grupo_s]
-        fig_scatter.add_trace(go.Scatter(
-            x=sub["Edad"], y=sub["score_final"], mode="markers", name=grupo_s,
-            marker=dict(color=GRUPO_COLOR.get(grupo_s, "#2E9E5B"), size=9, opacity=0.75,
-                        line=dict(width=1, color="#FFFFFF")),
-            customdata=sub[["Jugador", "Equipo", "Temporada", "arquetipo_proyectado"]],
-            hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]} (%{customdata[2]})<br>"
-                          "Arquetipo: %{customdata[3]}<br>Edad: %{x} · Score: %{y:.1f}<extra></extra>",
+    with st.container(border=True):
+        st.markdown("#### Edad vs. Score — dónde están los perfiles jóvenes con puntuación alta")
+        fig_scatter = go.Figure()
+        for grupo_s in sorted(tabla["grupo"].unique()):
+            sub = tabla[tabla["grupo"] == grupo_s]
+            fig_scatter.add_trace(go.Scatter(
+                x=sub["Edad"], y=sub["score_final"], mode="markers", name=grupo_s,
+                marker=dict(color=GRUPO_COLOR.get(grupo_s, "#2E9E5B"), size=9, opacity=0.75,
+                            line=dict(width=1, color="#FFFFFF")),
+                customdata=sub[["Jugador", "Equipo", "Temporada", "arquetipo_proyectado"]],
+                hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]} (%{customdata[2]})<br>"
+                              "Arquetipo: %{customdata[3]}<br>Edad: %{x} · Score: %{y:.1f}<extra></extra>",
+            ))
+        fig_scatter.update_layout(
+            height=460, margin=dict(l=50, r=30, t=20, b=50),
+            xaxis_title="Edad", yaxis_title="Score final",
+            font=dict(family="Inter, sans-serif", color="#14213D"),
+            paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+            legend=dict(font=dict(family="Space Grotesk, sans-serif", size=13)),
+        )
+        fig_scatter.update_xaxes(gridcolor="#EDEBE4")
+        fig_scatter.update_yaxes(gridcolor="#EDEBE4")
+        st.plotly_chart(fig_scatter, width='stretch')
+
+    with st.container(border=True):
+        st.markdown("#### Top 10 según los filtros actuales")
+        top10 = tabla.head(10).sort_values("score_final")
+        fig_bar = go.Figure(go.Bar(
+            x=top10["score_final"], y=top10["Jugador"] + " (" + top10["Equipo"] + ")",
+            orientation="h",
+            marker_color=[GRUPO_COLOR.get(g, "#2E9E5B") for g in top10["grupo"]],
+            text=top10["score_final"].round(1), textposition="outside",
         ))
-    fig_scatter.update_layout(
-        height=460, margin=dict(l=50, r=30, t=20, b=50),
-        xaxis_title="Edad", yaxis_title="Score final",
-        font=dict(family="Inter, sans-serif", color="#14213D"),
-        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
-        legend=dict(font=dict(family="Space Grotesk, sans-serif", size=13)),
-    )
-    fig_scatter.update_xaxes(gridcolor="#EDEBE4")
-    fig_scatter.update_yaxes(gridcolor="#EDEBE4")
-    st.plotly_chart(fig_scatter, width='stretch')
-
-    st.markdown("#### Top 10 según los filtros actuales")
-    top10 = tabla.head(10).sort_values("score_final")
-    fig_bar = go.Figure(go.Bar(
-        x=top10["score_final"], y=top10["Jugador"] + " (" + top10["Equipo"] + ")",
-        orientation="h",
-        marker_color=[GRUPO_COLOR.get(g, "#2E9E5B") for g in top10["grupo"]],
-        text=top10["score_final"].round(1), textposition="outside",
-    ))
-    fig_bar.update_layout(
-        height=420, margin=dict(l=10, r=30, t=10, b=40),
-        xaxis_title="Score final",
-        font=dict(family="Inter, sans-serif", color="#14213D"),
-        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
-    )
-    fig_bar.update_xaxes(gridcolor="#EDEBE4")
-    st.plotly_chart(fig_bar, width='stretch')
+        fig_bar.update_layout(
+            height=420, margin=dict(l=10, r=30, t=10, b=40),
+            xaxis_title="Score final",
+            font=dict(family="Inter, sans-serif", color="#14213D"),
+            paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+        )
+        fig_bar.update_xaxes(gridcolor="#EDEBE4")
+        st.plotly_chart(fig_bar, width='stretch')
 
 # ---------------------------------------------------------------------------
 # TAB 2 — Ficha de jugador
