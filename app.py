@@ -180,6 +180,34 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 </style>
 """, unsafe_allow_html=True)
 
+# Recolorea las "chips" seleccionadas de los multiselect de Posición (Ranking,
+# Comparador) para que usen el mismo color por grupo que el resto de la app
+# (scatter, Top 10, Ficha de jugador), en vez del verde único del tema global.
+import streamlit.components.v1 as components
+components.html("""
+<script>
+const GRUPO_COLOR_TAG = {"Extremo": "#2E9E5B", "Mediapunta": "#2563EB", "Delantero": "#C9762C"};
+function recolorTags() {
+    const doc = window.parent.document;
+    const tags = doc.querySelectorAll('div[data-baseweb="tag"], span[data-baseweb="tag"]');
+    tags.forEach(function (t) {
+        const label = (t.innerText || "").trim();
+        const color = GRUPO_COLOR_TAG[label];
+        if (color) {
+            t.style.setProperty("background-color", color, "important");
+        }
+    });
+}
+const target = window.parent.document.body;
+if (target && !window.__peTagObserverAttached) {
+    window.__peTagObserverAttached = true;
+    new MutationObserver(recolorTags).observe(target, {childList: true, subtree: true});
+}
+recolorTags();
+setInterval(recolorTags, 800);
+</script>
+""", height=0)
+
 # ---------------------------------------------------------------------------
 # Datos
 # ---------------------------------------------------------------------------
