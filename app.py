@@ -369,8 +369,27 @@ with tab_ranking:
 with tab_ficha:
     st.subheader("Ficha individual")
     rfef_validos = rfef.dropna(subset=["Jugador", "Equipo", "Temporada"]).copy()
-    opciones = (rfef_validos["Jugador"] + " — " + rfef_validos["Equipo"] + " (" + rfef_validos["Temporada"] + ")").tolist()
-    idx_map = dict(zip(opciones, rfef_validos.index))
+
+    col_eq_f, col_temp_f = st.columns(2)
+    with col_eq_f:
+        eq_filtro_f = st.multiselect("Filtrar por equipo (opcional)", sorted(rfef_validos["Equipo"].unique()),
+                                      default=[], key="ficha_eq_filtro")
+    with col_temp_f:
+        temp_filtro_f = st.multiselect("Filtrar por temporada (opcional)", sorted(rfef_validos["Temporada"].unique()),
+                                        default=[], key="ficha_temp_filtro")
+
+    rfef_filtrado_f = rfef_validos
+    if eq_filtro_f:
+        rfef_filtrado_f = rfef_filtrado_f[rfef_filtrado_f["Equipo"].isin(eq_filtro_f)]
+    if temp_filtro_f:
+        rfef_filtrado_f = rfef_filtrado_f[rfef_filtrado_f["Temporada"].isin(temp_filtro_f)]
+
+    if rfef_filtrado_f.empty:
+        st.warning("Sin resultados para esos filtros.")
+        st.stop()
+
+    opciones = (rfef_filtrado_f["Jugador"] + " — " + rfef_filtrado_f["Equipo"] + " (" + rfef_filtrado_f["Temporada"] + ")").tolist()
+    idx_map = dict(zip(opciones, rfef_filtrado_f.index))
     seleccion = st.selectbox("Selecciona un jugador", opciones,
                               index=opciones.index(opciones[0]) if opciones else 0)
     jugador = rfef.loc[idx_map[seleccion]]
