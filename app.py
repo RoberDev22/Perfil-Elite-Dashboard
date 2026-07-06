@@ -192,9 +192,9 @@ function recolorTags() {
     const tags = doc.querySelectorAll('div[data-baseweb="tag"], span[data-baseweb="tag"]');
     tags.forEach(function (t) {
         const label = (t.innerText || "").trim();
-        const color = GRUPO_COLOR_TAG[label];
-        if (color) {
-            t.style.setProperty("background-color", color, "important");
+        const match = Object.keys(GRUPO_COLOR_TAG).find(function (k) { return label === k || label.startsWith(k); });
+        if (match) {
+            t.style.setProperty("background-color", GRUPO_COLOR_TAG[match], "important");
         }
     });
 }
