@@ -594,7 +594,7 @@ with tab_destacados:
                     <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.95rem;
                          display:flex; align-items:center; gap:0.4rem;">
                     {img_html(escudo_d, size=18, radius="3px")}
-                    {ultima['Equipo']} · última temporada en el dataset: {historial['Temporada'].iloc[-1]}</div>
+                    {ultima['Equipo']} · temporada destacada: {ultima['Temporada']}</div>
                     </div></div>"""
             )
             render_html(
