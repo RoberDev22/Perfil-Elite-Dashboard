@@ -599,6 +599,9 @@ with tab_destacados:
         color = GRUPO_COLOR.get(ultima["grupo"], "#2E9E5B")
         foto_d = buscar_imagen("jugadores", ultima["Jugador"])
         escudo_d = buscar_imagen("escudos", ultima["Equipo"])
+        equipo_actual = EQUIPO_ACTUAL.get(nombre)
+        escudo_actual = buscar_imagen("escudos", equipo_actual) if equipo_actual else None
+        nota_actual = EQUIPO_ACTUAL_NOTA.get(nombre)
 
         with st.container(border=True):
             render_html(
