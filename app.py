@@ -343,15 +343,12 @@ with tab_ranking:
     )
     tabla = rfef[filtro].sort_values("score_final", ascending=False)
 
-    GRUPO_EMOJI = {"Extremo": "🟢", "Mediapunta": "🔵", "Delantero": "🟠"}
-
     st.write(f"**{len(tabla)}** jugadores cumplen los filtros.")
 
     tabla_display = tabla[["Jugador", "Equipo", "Edad", "Temporada", "grupo", "arquetipo_proyectado",
                             "similitud_coseno", "score_final", "percentil_score"]].copy()
     tabla_display.insert(0, "Foto", tabla["Jugador"].apply(lambda n: buscar_imagen("jugadores", n)))
     tabla_display.insert(2, "Escudo", tabla["Equipo"].apply(lambda n: buscar_imagen("escudos", n)))
-    tabla_display["grupo"] = tabla_display["grupo"].apply(lambda g: f"{GRUPO_EMOJI.get(g, '⚪')} {g}")
     tabla_display = tabla_display.rename(columns={
         "grupo": "Posición", "arquetipo_proyectado": "Arquetipo",
         "similitud_coseno": "Similitud", "score_final": "Score",
