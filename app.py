@@ -395,8 +395,9 @@ with tab_ranking:
     with st.container(border=True):
         st.markdown("#### Top 10 según los filtros actuales")
         top10 = tabla.head(10).sort_values("score_final")
+        etiquetas_top10 = (top10["Jugador"] + " (" + top10["Equipo"] + " · " + top10["Temporada"] + ")")
         fig_bar = go.Figure(go.Bar(
-            x=top10["score_final"], y=top10["Jugador"] + " (" + top10["Equipo"] + ")",
+            x=top10["score_final"], y=etiquetas_top10,
             orientation="h",
             marker_color=[GRUPO_COLOR.get(g, "#2E9E5B") for g in top10["grupo"]],
             text=top10["score_final"].round(1), textposition="outside",
