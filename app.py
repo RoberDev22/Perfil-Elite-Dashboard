@@ -180,6 +180,13 @@ RADAR_VARS = {
 }
 
 GRUPO_COLOR = {"Extremo": "#2E9E5B", "Mediapunta": "#2563EB", "Delantero": "#C9762C"}
+GRUPO_COLOR_LIGHT = {"Extremo": "#EAF6EF", "Mediapunta": "#EAF1FE", "Delantero": "#FDF1E7"}
+
+
+def hex_to_rgba(hex_color, alpha=0.25):
+    hex_color = hex_color.lstrip("#")
+    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
 
 VALIDACION_EMPIRICA = [
     "Fer López", "A. Ezzalzouli", "Pablo Torre", "Jan Virgili",
@@ -368,6 +375,8 @@ with tab_ficha:
                               index=opciones.index(opciones[0]) if opciones else 0)
     jugador = rfef.loc[idx_map[seleccion]]
     grupo = jugador["grupo"]
+    color_ficha = GRUPO_COLOR.get(grupo, "#2E9E5B")
+    color_ficha_light = GRUPO_COLOR_LIGHT.get(grupo, "#EAF6EF")
 
     foto_jugador = buscar_imagen("jugadores", jugador["Jugador"])
     escudo_equipo = buscar_imagen("escudos", jugador["Equipo"])
@@ -404,7 +413,7 @@ with tab_ficha:
             x=stats_score[grupo]["valores"], nbinsx=30,
             marker_color="#D8D4C8", name="Resto del grupo", opacity=0.9,
         ))
-        fig_dist.add_vline(x=jugador["score_final"], line_width=3, line_color="#1B4332",
+        fig_dist.add_vline(x=jugador["score_final"], line_width=3, line_color=color_ficha,
                             annotation_text=jugador["Jugador"], annotation_position="top",
                             annotation_font=dict(family="Space Grotesk, sans-serif", color="#14213D", size=12))
         fig_dist.add_vline(x=media_grupo, line_width=1, line_dash="dot", line_color="#6B7280",
@@ -419,7 +428,7 @@ with tab_ficha:
         st.plotly_chart(fig_dist, width='stretch')
 
         render_html(
-            f"""<div style="background:#EAF2EC; border:1px solid #1B4332; border-left:5px solid #1B4332;
+            f"""<div style="background:{color_ficha_light}; border:1px solid {color_ficha}; border-left:5px solid {color_ficha};
                  border-radius:10px; padding:0.55rem 1rem; margin:0.6rem 0 0.9rem 0;
                  font-family:'Space Grotesk', sans-serif; font-weight:600; color:#14213D; font-size:1.05rem;">
                  {jugador['arquetipo_proyectado']}
@@ -436,7 +445,7 @@ with tab_ficha:
         factores = jugador["shap_top_factores"].split(" | ")
         nombres = [f.split(" (")[0] for f in factores]
         valores = [float(f.split("(")[1].replace(")", "").replace("+", "").replace("−", "-")) for f in factores]
-        colores = ["#1B4332" if v >= 0 else "#B33A3A" for v in valores]
+        colores = ["#2E9E5B" if v >= 0 else "#B33A3A" for v in valores]
         fig_shap = go.Figure(go.Bar(
             x=valores, y=nombres, orientation="h", marker_color=colores,
             text=[f"{v:+.1f}" for v in valores], textposition="outside",
@@ -454,8 +463,8 @@ with tab_ficha:
         fig_radar.add_trace(go.Scatterpolar(
             r=valores_pct + [valores_pct[0]],
             theta=radar_vars + [radar_vars[0]],
-            fill="toself", name=jugador["Jugador"], line_color="#1B4332",
-            fillcolor="rgba(27, 67, 50, 0.25)",
+            fill="toself", name=jugador["Jugador"], line_color=color_ficha,
+            fillcolor=hex_to_rgba(color_ficha, 0.25),
         ))
         fig_radar.update_layout(
             polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
