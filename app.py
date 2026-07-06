@@ -511,6 +511,18 @@ with tab_comparador:
     with c2:
         j2 = selector_jugador("Jugador 2", "j2", 1)
 
+    colh1, colh2 = st.columns(2)
+    for colh, j in [(colh1, j1), (colh2, j2)]:
+        escudo_j = buscar_imagen("escudos", j["Equipo"])
+        render_html(
+            f"""<div style="display:flex; align-items:center; gap:0.5rem; font-family:'Space Grotesk', sans-serif;
+                 font-weight:700; color:#14213D; font-size:1.1rem; margin-bottom:0.6rem;">
+                 {img_html(escudo_j, size=26, radius="4px")} {j['Jugador']}
+                 <span style="font-family:'Inter', sans-serif; font-weight:500; color:#6B7280; font-size:0.85rem;">
+                 · {j['Equipo']} ({j['Temporada']})</span></div>""",
+            container=colh,
+        )
+
     misma_posicion = j1["grupo"] == j2["grupo"]
     if misma_posicion:
         radar_vars = RADAR_VARS[j1["grupo"]]
