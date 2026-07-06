@@ -20,19 +20,34 @@ def normaliza_nombre(nombre):
     return limpio
 
 
-@st.cache_data
-def cargar_urls_imagenes():
-    import os
+def _ruta_imagenes_urls():
     candidatos = [
         "data/imagenes_urls.csv", "dashboard/data/imagenes_urls.csv",
         "imagenes_urls.csv", "./imagenes_urls.csv",
     ]
     for ruta in candidatos:
         if os.path.exists(ruta):
-            df_urls = pd.read_csv(ruta)
-            df_urls["clave"] = df_urls["tipo"] + "::" + df_urls["nombre"].apply(normaliza_nombre)
-            return dict(zip(df_urls["clave"], df_urls["url"])), ruta, candidatos
-    return {}, None, candidatos
+            return ruta, candidatos
+    return None, candidatos
+
+
+@st.cache_data
+def _cargar_urls_imagenes_cache(_ruta, _mtime):
+    """Cache real, invalidada automáticamente cuando cambia el archivo en disco
+    (la mtime forma parte de la clave de caché), no solo cuando cambia el código.
+    Esto evita servir imágenes desactualizadas tras un redeploy que no reinicia
+    del todo el proceso de Streamlit."""
+    df_urls = pd.read_csv(_ruta)
+    df_urls["clave"] = df_urls["tipo"] + "::" + df_urls["nombre"].apply(normaliza_nombre)
+    return dict(zip(df_urls["clave"], df_urls["url"]))
+
+
+def cargar_urls_imagenes():
+    ruta, candidatos = _ruta_imagenes_urls()
+    if ruta is None:
+        return {}, None, candidatos
+    mtime = os.path.getmtime(ruta)
+    return _cargar_urls_imagenes_cache(ruta, mtime), ruta, candidatos
 
 
 @st.cache_data(show_spinner=False)
