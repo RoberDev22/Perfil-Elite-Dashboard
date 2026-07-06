@@ -179,7 +179,7 @@ RADAR_VARS = {
                   'Toques en el área de penalti/90', 'Carreras en progresión/90', 'Duelos defensivos/90'],
 }
 
-GRUPO_COLOR = {"Extremo": "#1B4332", "Mediapunta": "#14213D", "Delantero": "#C9762C"}
+GRUPO_COLOR = {"Extremo": "#2E9E5B", "Mediapunta": "#2563EB", "Delantero": "#C9762C"}
 
 VALIDACION_EMPIRICA = [
     "Fer López", "A. Ezzalzouli", "Pablo Torre", "Jan Virgili",
@@ -305,7 +305,7 @@ with tab_ranking:
         sub = tabla[tabla["grupo"] == grupo_s]
         fig_scatter.add_trace(go.Scatter(
             x=sub["Edad"], y=sub["score_final"], mode="markers", name=grupo_s,
-            marker=dict(color=GRUPO_COLOR.get(grupo_s, "#1B4332"), size=9, opacity=0.75,
+            marker=dict(color=GRUPO_COLOR.get(grupo_s, "#2E9E5B"), size=9, opacity=0.75,
                         line=dict(width=1, color="#FFFFFF")),
             customdata=sub[["Jugador", "Equipo", "Temporada", "arquetipo_proyectado"]],
             hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]} (%{customdata[2]})<br>"
@@ -327,7 +327,7 @@ with tab_ranking:
     fig_bar = go.Figure(go.Bar(
         x=top10["score_final"], y=top10["Jugador"] + " (" + top10["Equipo"] + ")",
         orientation="h",
-        marker_color=[GRUPO_COLOR.get(g, "#1B4332") for g in top10["grupo"]],
+        marker_color=[GRUPO_COLOR.get(g, "#2E9E5B") for g in top10["grupo"]],
         text=top10["score_final"].round(1), textposition="outside",
     ))
     fig_bar.update_layout(
@@ -538,7 +538,7 @@ with tab_validacion:
         if fila.empty:
             continue
         fila = fila.sort_values("score_final", ascending=False).iloc[0]
-        color = GRUPO_COLOR.get(fila["grupo"], "#1B4332")
+        color = GRUPO_COLOR.get(fila["grupo"], "#2E9E5B")
         foto_v = buscar_imagen("jugadores", fila["Jugador"])
         escudo_v = buscar_imagen("escudos", fila["Equipo"])
         render_html(
@@ -579,7 +579,7 @@ with tab_destacados:
             continue
         ultima = historial.sort_values("score_final", ascending=False).iloc[0]
         extra_row = destacados_extra[destacados_extra["Jugador"] == nombre]
-        color = GRUPO_COLOR.get(ultima["grupo"], "#1B4332")
+        color = GRUPO_COLOR.get(ultima["grupo"], "#2E9E5B")
         foto_d = buscar_imagen("jugadores", ultima["Jugador"])
         escudo_d = buscar_imagen("escudos", ultima["Equipo"])
 
