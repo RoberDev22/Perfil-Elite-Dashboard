@@ -596,7 +596,7 @@ with tab_validacion:
                          {fila['arquetipo_proyectado']} · {fila['Temporada']}</div>
                     <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.82rem; margin-top:0.15rem;
                          display:flex; align-items:center; gap:0.35rem;">
-                         {img_html(escudo_v, size=16, radius="3px")}
+                         {img_html(escudo_v, size=24, radius="3px")}
                          <span>{fila['Equipo']}</span></div>
                 </div>
                 <div style="flex:1; font-family:'Inter', sans-serif; color:#14213D; font-size:0.95rem;
@@ -636,7 +636,7 @@ with tab_destacados:
                     {ultima['Jugador']}</div>
                     <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.95rem;
                          display:flex; align-items:center; gap:0.4rem;">
-                    {img_html(escudo_d, size=18, radius="3px")}
+                    {img_html(escudo_d, size=24, radius="3px")}
                     {ultima['Equipo']} · temporada destacada: {ultima['Temporada']}</div>
                     </div></div>"""
             )
@@ -645,7 +645,7 @@ with tab_destacados:
                 pill_actual = f"""<div style="background:#FFF8EC; border:1px solid #E8A33D; border-left:5px solid #E8A33D;
                      border-radius:8px; padding:0.4rem 0.9rem; display:inline-flex; align-items:center; gap:0.4rem;
                      font-family:'Space Grotesk', sans-serif; font-weight:600; color:#14213D; font-size:0.95rem;">
-                     {img_html(escudo_actual, size=18, radius="3px")}
+                     {img_html(escudo_actual, size=24, radius="3px")}
                      Actualmente en: {equipo_actual}</div>"""
 
             render_html(
