@@ -611,7 +611,7 @@ with tab_destacados:
                     ("Pie", str(e["Pie"]).capitalize() if pd.notna(e["Pie"]) else "N/D"),
                     ("Nacionalidad", str(e["Pasaporte"]) if pd.notna(e["Pasaporte"]) else "N/D"),
                     ("Minutos jugados (su mejor temporada)", f"{int(ultima['Minutos jugados'])} min"),
-                    ("Contrato (en su etapa RFEF)", str(e["Vencimiento contrato"]) if pd.notna(e["Vencimiento contrato"]) else "N/D"),
+                    ("Vencimiento de contrato (dato más reciente)", str(e["Vencimiento contrato"]) if pd.notna(e["Vencimiento contrato"]) else "N/D"),
                 ]
                 cols_chip = st.columns(len(chips))
                 for col, (label, val) in zip(cols_chip, chips):
@@ -623,6 +623,8 @@ with tab_destacados:
                              </div>""",
                         container=col,
                     )
+                st.caption("El vencimiento de contrato corresponde al último dato disponible (normalmente ya en su club "
+                           "actual tras el fichaje), no al contrato que tenía durante su etapa en 1ª RFEF.")
 
             colE, colF = st.columns([1, 1.4])
             with colE:
@@ -671,9 +673,21 @@ with tab_destacados:
                     xaxis=dict(gridcolor="#EDEBE4", title="Score final"),
                 )
                 st.plotly_chart(fig_evo, width='stretch')
+
+                percentil_pico = ultima.get("percentil_score", float("nan"))
+                if pd.notna(percentil_pico):
+                    explicacion = (f"En la temporada {ultima['Temporada']} destacó con un score de {ultima['score_final']:.1f} pts, "
+                                    f"situándose en el percentil {percentil_pico:.0f} entre los {grupo_hist.lower()}s de 1ª RFEF "
+                                    f"analizados por el modelo (por encima del {percentil_pico:.0f}% del grupo esa temporada).")
+                else:
+                    explicacion = (f"En la temporada {ultima['Temporada']} destacó con un score de {ultima['score_final']:.1f} pts "
+                                    f"dentro del grupo de {grupo_hist.lower()}s de 1ª RFEF analizados por el modelo.")
+
                 if len(historial) > 1:
                     delta = historial["score_final"].iloc[-1] - historial["score_final"].iloc[0]
                     signo = "subió" if delta > 0 else "bajó"
-                    st.caption(f"Entre {historial['Temporada'].iloc[0]} y {historial['Temporada'].iloc[-1]} el score {signo} "
-                               f"{abs(delta):.1f} puntos — recuerda que el score es relativo al resto del grupo de esa "
-                               f"temporada, así que también refleja cambios en el nivel general del grupo, no solo en el jugador.")
+                    explicacion += (f" Entre {historial['Temporada'].iloc[0]} y {historial['Temporada'].iloc[-1]} el score {signo} "
+                                    f"{abs(delta):.1f} puntos — recuerda que el score es relativo al resto del grupo de esa "
+                                    f"temporada, así que también refleja cambios en el nivel general del grupo, no solo en el jugador.")
+
+                st.caption(explicacion)
