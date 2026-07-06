@@ -372,11 +372,11 @@ with tab_ficha:
 
     col_eq_f, col_temp_f = st.columns(2)
     with col_eq_f:
-        eq_filtro_f = st.multiselect("Filtrar por equipo (opcional)", sorted(rfef_validos["Equipo"].unique()),
-                                      default=[], key="ficha_eq_filtro")
+        eq_filtro_f = st.multiselect("Filtrar por equipo", sorted(rfef_validos["Equipo"].unique()),
+                                      default=[], key="ficha_eq_filtro", placeholder="Elige una o varias opciones")
     with col_temp_f:
-        temp_filtro_f = st.multiselect("Filtrar por temporada (opcional)", sorted(rfef_validos["Temporada"].unique()),
-                                        default=[], key="ficha_temp_filtro")
+        temp_filtro_f = st.multiselect("Filtrar por temporada", sorted(rfef_validos["Temporada"].unique()),
+                                        default=[], key="ficha_temp_filtro", placeholder="Elige una o varias opciones")
 
     rfef_filtrado_f = rfef_validos
     if eq_filtro_f:
@@ -511,8 +511,8 @@ with tab_comparador:
                                       default=sorted(rfef_validos_comp["grupo"].unique()), key=f"{key_prefix}_pos")
         sub = rfef_validos_comp[rfef_validos_comp["grupo"].isin(pos_sel)] if pos_sel else rfef_validos_comp
         with c_eq:
-            eq_sel = st.multiselect(f"Equipo ({etiqueta}, opcional)", sorted(sub["Equipo"].unique()),
-                                     default=[], key=f"{key_prefix}_eq")
+            eq_sel = st.multiselect(f"Equipo ({etiqueta})", sorted(sub["Equipo"].unique()),
+                                     default=[], key=f"{key_prefix}_eq", placeholder="Elige una o varias opciones")
         if eq_sel:
             sub = sub[sub["Equipo"].isin(eq_sel)]
         if sub.empty:
