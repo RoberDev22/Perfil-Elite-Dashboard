@@ -522,25 +522,23 @@ with tab_comparador:
         idx_map = dict(zip(opciones, sub.index))
         sel = st.selectbox(f"Jugador — {etiqueta}", opciones,
                             index=min(index_default, len(opciones) - 1), key=f"{key_prefix}_sel")
-        return sub.loc[idx_map[sel]]
+        jugador_sel = sub.loc[idx_map[sel]]
+
+        escudo_sel = buscar_imagen("escudos", jugador_sel["Equipo"])
+        render_html(
+            f"""<div style="display:flex; align-items:center; gap:0.5rem; font-family:'Space Grotesk', sans-serif;
+                 font-weight:700; color:#14213D; font-size:1.1rem; margin:0.4rem 0 0.6rem 0;">
+                 {img_html(escudo_sel, size=26, radius="4px")} {jugador_sel['Jugador']}
+                 <span style="font-family:'Inter', sans-serif; font-weight:500; color:#6B7280; font-size:0.85rem;">
+                 · {jugador_sel['Equipo']} ({jugador_sel['Temporada']})</span></div>"""
+        )
+        return jugador_sel
 
     c1, c2 = st.columns(2)
     with c1:
         j1 = selector_jugador("Jugador 1", "j1", 0)
     with c2:
         j2 = selector_jugador("Jugador 2", "j2", 1)
-
-    colh1, colh2 = st.columns(2)
-    for colh, j in [(colh1, j1), (colh2, j2)]:
-        escudo_j = buscar_imagen("escudos", j["Equipo"])
-        render_html(
-            f"""<div style="display:flex; align-items:center; gap:0.5rem; font-family:'Space Grotesk', sans-serif;
-                 font-weight:700; color:#14213D; font-size:1.1rem; margin-bottom:0.6rem;">
-                 {img_html(escudo_j, size=26, radius="4px")} {j['Jugador']}
-                 <span style="font-family:'Inter', sans-serif; font-weight:500; color:#6B7280; font-size:0.85rem;">
-                 · {j['Equipo']} ({j['Temporada']})</span></div>""",
-            container=colh,
-        )
 
     misma_posicion = j1["grupo"] == j2["grupo"]
     if misma_posicion:
