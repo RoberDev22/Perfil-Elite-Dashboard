@@ -586,16 +586,18 @@ with tab_validacion:
                 <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color};
                      font-size:1.7rem; min-width:2.4rem; line-height:1.4;">{i:02d}</div>
                 {img_html(foto_v, size=64, radius="50%", border="#E4E1D8", con_silueta=True)}
-                <div style="flex:0 0 210px;">
+                <div style="flex:0 0 230px;">
                     <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D;
                          font-size:1.35rem; line-height:1.2;">{fila['Jugador']}</div>
                     <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color};
                          font-size:1.9rem; line-height:1.3; margin-top:0.2rem;">
                          {fila['score_final']:.1f} <span style="font-size:0.9rem; font-weight:500; color:#6B7280;">pts</span></div>
-                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.82rem; margin-top:0.2rem;
+                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.82rem; margin-top:0.3rem;">
+                         {fila['arquetipo_proyectado']} · {fila['Temporada']}</div>
+                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.82rem; margin-top:0.15rem;
                          display:flex; align-items:center; gap:0.35rem;">
-                         {img_html(escudo_v, size=18, radius="3px")}
-                         {fila['arquetipo_proyectado']} · {fila['Temporada']} · {fila['Equipo']}</div>
+                         {img_html(escudo_v, size=16, radius="3px")}
+                         <span>{fila['Equipo']}</span></div>
                 </div>
                 <div style="flex:1; font-family:'Inter', sans-serif; color:#14213D; font-size:0.95rem;
                      line-height:1.5; padding-top:0.2rem;">{VALIDACION_TEXTO.get(nombre, "")}</div>
