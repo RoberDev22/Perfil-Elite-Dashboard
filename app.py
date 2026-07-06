@@ -196,6 +196,23 @@ VALIDACION_TEXTO = {
     'Victor Muñoz': "Detectado en su temporada de consolidación 2024-25 con el Real Madrid Castilla. Fichó por el Osasuna, fue elegido mejor sub-23 de LaLiga en dos ocasiones, debutó con España y fue convocado al Mundial 2026, antes de ser traspasado al Liverpool F.C. por su cláusula de 40M€.",
 }
 
+# Club en el que juega cada jugador HOY (no el de su etapa en 1ª RFEF). Dato mantenido a mano,
+# igual que VALIDACION_TEXTO, porque el mercado de fichajes cambia y no está en ningún CSV del dataset.
+EQUIPO_ACTUAL_ACTUALIZADO = "6 de julio de 2026"
+EQUIPO_ACTUAL = {
+    'Fer López': "Wolverhampton Wanderers",
+    'A. Ezzalzouli': "Real Betis Balompié",
+    'Pablo Torre': "RCD Mallorca",
+    'Jan Virgili': "RCD Mallorca",
+    'Pau Víctor': "Sporting de Braga",
+    'Fermín López': "FC Barcelona",
+    'Victor Muñoz': "Liverpool FC",
+}
+EQUIPO_ACTUAL_NOTA = {
+    'Fer López': "de vuelta de su cesión en el Celta; su destino para 2026-27 aún se decide este verano.",
+    'Jan Virgili': "el FC Barcelona negocia su recompra y una cesión inmediata al Real Betis (operación en curso, no oficializada).",
+}
+
 
 @st.cache_data
 def cargar_datos():
@@ -597,12 +614,26 @@ with tab_destacados:
                     {ultima['Equipo']} · temporada destacada: {ultima['Temporada']}</div>
                     </div></div>"""
             )
+            pill_actual = ""
+            if equipo_actual:
+                pill_actual = f"""<div style="background:#FFF8EC; border:1px solid #E8A33D; border-left:5px solid #E8A33D;
+                     border-radius:8px; padding:0.4rem 0.9rem; display:inline-flex; align-items:center; gap:0.4rem;
+                     font-family:'Space Grotesk', sans-serif; font-weight:600; color:#14213D; font-size:0.95rem;">
+                     {img_html(escudo_actual, size=18, radius="3px")}
+                     Actualmente en: {equipo_actual}</div>"""
+
             render_html(
-                f"""<div style="background:#FFFFFF; border:1px solid {color}; border-left:5px solid {color};
-                     border-radius:8px; padding:0.4rem 0.9rem; display:inline-block; font-family:'Space Grotesk', sans-serif;
-                     font-weight:600; color:#14213D; font-size:0.95rem; margin-bottom:0.8rem;">
-                     {ultima['arquetipo_proyectado']} · {ultima['grupo']}</div>"""
+                f"""<div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.8rem;">
+                     <div style="background:#FFFFFF; border:1px solid {color}; border-left:5px solid {color};
+                     border-radius:8px; padding:0.4rem 0.9rem; display:inline-flex; align-items:center;
+                     font-family:'Space Grotesk', sans-serif; font-weight:600; color:#14213D; font-size:0.95rem;">
+                     {ultima['arquetipo_proyectado']} · {ultima['grupo']}</div>
+                     {pill_actual}</div>"""
             )
+            if equipo_actual and nota_actual:
+                st.caption(f"📌 {nota_actual}")
+            if equipo_actual:
+                st.caption(f"Equipo actual verificado a {EQUIPO_ACTUAL_ACTUALIZADO}; puede cambiar con el mercado de fichajes.")
 
             if not extra_row.empty:
                 e = extra_row.iloc[0]
