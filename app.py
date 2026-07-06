@@ -94,11 +94,16 @@ def silueta_svg(size=48):
 
 
 def img_html(ruta, size=48, radius="50%", border=None, con_silueta=False):
-    """HTML <img> listo para insertar en un f-string de markdown. Acepta tanto rutas locales como URLs http(s).
+    """HTML <img> listo para insertar en un f-string de markdown. Acepta rutas locales, URLs http(s)
+    y data URIs (data:image/...;base64,...) ya listas para usar tal cual.
     Si con_silueta=True y no hay ruta, devuelve un icono neutro de 'sin foto' en vez de nada."""
     if ruta is None:
         return silueta_svg(size) if con_silueta else ""
-    src = ruta if str(ruta).startswith("http") else imagen_a_data_uri(ruta)
+    ruta_str = str(ruta)
+    if ruta_str.startswith("http") or ruta_str.startswith("data:"):
+        src = ruta_str
+    else:
+        src = imagen_a_data_uri(ruta)
     borde = f"border:2px solid {border};" if border else ""
     return (f'<img src="{src}" style="width:{size}px; height:{size}px; object-fit:cover; '
             f'border-radius:{radius}; {borde}" referrerpolicy="no-referrer" loading="lazy">')
