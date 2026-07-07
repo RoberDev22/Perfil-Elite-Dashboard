@@ -173,24 +173,17 @@ div[data-testid="stMetricLabel"], div[data-testid="stMetricLabel"] p {
     fill: #14213D !important;
 }
 
-/* Contenedores con borde (tarjetas de validación empírica, jugadores destacados, etc.) */
-div[data-testid="stVerticalBlockBorderWrapper"] {
-    border-radius: 12px !important; border: 1px solid #E4E1D8 !important;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-}
-div[data-testid="stVerticalBlockBorderWrapper"]:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 24px rgba(20, 33, 61, 0.10);
-    border-color: #C9C4B4 !important;
-}
-
-/* Tarjetas montadas a mano en HTML (validación empírica, previews del comparador) */
+/* Tarjetas con borde: contenedores st.container(border=True) detectados por JS
+   (el testid de Streamlit para esto ha cambiado entre versiones, así que se marcan
+   dinámicamente más abajo) y tarjetas montadas a mano en HTML. */
 .pe-hover-card {
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    border-radius: 12px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 .pe-hover-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 10px 24px rgba(20, 33, 61, 0.10);
+    border-color: #C9C4B4 !important;
 }
 
 /* Cabeceras de st.table (nombres de jugadores en el comparador) */
@@ -228,13 +221,31 @@ function recolorTags() {
         }
     });
 }
+// Marca con la clase .pe-hover-card los contenedores st.container(border=True):
+// el data-testid de Streamlit para esto ha cambiado de versión a versión, así
+// que se detectan por su borde ya calculado en vez de por un nombre fijo.
+function marcarTarjetasConBorde() {
+    const doc = window.parent.document;
+    const bloques = doc.querySelectorAll('div[data-testid="stVerticalBlock"]');
+    bloques.forEach(function (b) {
+        if (b.classList.contains('pe-hover-card')) return;
+        const cs = doc.defaultView.getComputedStyle(b);
+        if (cs.borderTopWidth !== '0px' && cs.borderTopStyle !== 'none') {
+            b.classList.add('pe-hover-card');
+        }
+    });
+}
+function refrescarTodo() {
+    recolorTags();
+    marcarTarjetasConBorde();
+}
 const target = window.parent.document.body;
 if (target && !window.__peTagObserverAttached) {
     window.__peTagObserverAttached = true;
-    new MutationObserver(recolorTags).observe(target, {childList: true, subtree: true});
+    new MutationObserver(refrescarTodo).observe(target, {childList: true, subtree: true});
 }
-recolorTags();
-setInterval(recolorTags, 800);
+refrescarTodo();
+setInterval(refrescarTodo, 800);
 </script>
 """, height=0)
 
