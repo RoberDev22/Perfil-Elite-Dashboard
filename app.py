@@ -488,28 +488,37 @@ with tab_ficha:
     st.subheader("Ficha individual")
     rfef_validos = rfef.dropna(subset=["Jugador", "Equipo", "Temporada"]).copy()
 
-    col_eq_f, col_temp_f = st.columns(2)
-    with col_eq_f:
-        eq_filtro_f = st.multiselect("Filtrar por equipo", sorted(rfef_validos["Equipo"].unique()),
-                                      default=[], key="ficha_eq_filtro", placeholder="Elige una o varias opciones")
-    with col_temp_f:
-        temp_filtro_f = st.multiselect("Filtrar por temporada", sorted(rfef_validos["Temporada"].unique()),
-                                        default=[], key="ficha_temp_filtro", placeholder="Elige una o varias opciones")
+    with st.container(border=True):
+        render_html(
+            """<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.7rem;
+                 font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.05rem;">
+                 <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.35rem; color:#1B4332; vertical-align:-3px;">travel_explore</span>
+                 Buscar jugador</div>"""
+        )
+        col_eq_f, col_temp_f = st.columns(2)
+        with col_eq_f:
+            eq_filtro_f = st.multiselect(":material/shield: Equipo", sorted(rfef_validos["Equipo"].unique()),
+                                          default=[], key="ficha_eq_filtro", placeholder="Todos los equipos")
+        with col_temp_f:
+            temp_filtro_f = st.multiselect(":material/calendar_month: Temporada", sorted(rfef_validos["Temporada"].unique()),
+                                            default=[], key="ficha_temp_filtro", placeholder="Todas las temporadas")
 
-    rfef_filtrado_f = rfef_validos
-    if eq_filtro_f:
-        rfef_filtrado_f = rfef_filtrado_f[rfef_filtrado_f["Equipo"].isin(eq_filtro_f)]
-    if temp_filtro_f:
-        rfef_filtrado_f = rfef_filtrado_f[rfef_filtrado_f["Temporada"].isin(temp_filtro_f)]
+        rfef_filtrado_f = rfef_validos
+        if eq_filtro_f:
+            rfef_filtrado_f = rfef_filtrado_f[rfef_filtrado_f["Equipo"].isin(eq_filtro_f)]
+        if temp_filtro_f:
+            rfef_filtrado_f = rfef_filtrado_f[rfef_filtrado_f["Temporada"].isin(temp_filtro_f)]
 
-    if rfef_filtrado_f.empty:
-        st.warning("Sin resultados para esos filtros.")
-        st.stop()
+        if rfef_filtrado_f.empty:
+            st.warning("Sin resultados para esos filtros.")
+            st.stop()
 
-    opciones = (rfef_filtrado_f["Jugador"] + " — " + rfef_filtrado_f["Equipo"] + " (" + rfef_filtrado_f["Temporada"] + ")").tolist()
-    idx_map = dict(zip(opciones, rfef_filtrado_f.index))
-    seleccion = st.selectbox("Selecciona un jugador", opciones,
-                              index=opciones.index(opciones[0]) if opciones else 0)
+        opciones = (rfef_filtrado_f["Jugador"] + " — " + rfef_filtrado_f["Equipo"] + " (" + rfef_filtrado_f["Temporada"] + ")").tolist()
+        idx_map = dict(zip(opciones, rfef_filtrado_f.index))
+        seleccion = st.selectbox(":material/person_search: Selecciona un jugador", opciones,
+                                  index=opciones.index(opciones[0]) if opciones else 0)
+        st.caption(f"{len(opciones)} ficha(s) disponibles con estos filtros.")
+
     jugador = rfef.loc[idx_map[seleccion]]
     grupo = jugador["grupo"]
     color_ficha = GRUPO_COLOR.get(grupo, "#2E9E5B")
