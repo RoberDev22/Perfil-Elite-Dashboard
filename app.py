@@ -407,7 +407,7 @@ with tab_ranking:
                  <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.35rem;
                  color:#1B4332; vertical-align:-3px;">tune</span>Filtros</div>"""
         )
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         with col1:
             render_label_icono("sports_soccer", "Posición", col1)
             grupos_sel = st.multiselect(" ", sorted(rfef["grupo"].unique()),
@@ -423,15 +423,23 @@ with tab_ranking:
             temporadas_sel = st.multiselect(" ", sorted(rfef["Temporada"].unique()),
                                              default=sorted(rfef["Temporada"].unique()),
                                              placeholder="Elige una o varias opciones", label_visibility="collapsed")
+
+        col4, col5 = st.columns(2)
         with col4:
             render_label_icono("speed", "Score mínimo", col4)
             score_min = st.slider(" ", 0, 100, 0, label_visibility="collapsed")
+        with col5:
+            edad_min_data, edad_max_data = int(rfef["Edad"].min()), int(rfef["Edad"].max())
+            render_label_icono("cake", "Edad", col5)
+            edad_rango = st.slider(" ", edad_min_data, edad_max_data,
+                                    (edad_min_data, edad_max_data), label_visibility="collapsed")
 
     filtro = (
         rfef["grupo"].isin(grupos_sel)
         & rfef["arquetipo_proyectado"].isin(arquetipos_sel)
         & rfef["Temporada"].isin(temporadas_sel)
         & (rfef["score_final"] >= score_min)
+        & rfef["Edad"].between(edad_rango[0], edad_rango[1])
     )
     tabla = rfef[filtro].sort_values("score_final", ascending=False)
 
