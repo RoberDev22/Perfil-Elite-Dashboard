@@ -138,10 +138,10 @@ def render_label_icono(icono, texto, container=None, color_icono="#6B7280"):
     un widget con label_visibility='collapsed' (los shortcodes :material/icono: no
     se procesan dentro de labels de multiselect/selectbox, así que se monta a mano)."""
     render_html(
-        f"""<div style="display:flex; align-items:center; gap:0.3rem; margin-bottom:-0.55rem;
+        f"""<div style="display:flex; align-items:center; gap:0.35rem; margin:0 0 0.35rem 0;
              font-family:'Inter', sans-serif; font-weight:600; color:#14213D; font-size:0.875rem;">
              <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.05rem;
-             color:{color_icono}; vertical-align:-2px;">{icono}</span>{texto}</div>""",
+             color:{color_icono}; line-height:1;">{icono}</span>{texto}</div>""",
         container=container,
     )
 
