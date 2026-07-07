@@ -617,12 +617,18 @@ with tab_comparador:
         jugador_sel = sub.loc[idx_map[sel]]
 
         escudo_sel = buscar_imagen("escudos", jugador_sel["Equipo"])
+        foto_sel = buscar_imagen("jugadores", jugador_sel["Jugador"])
         render_html(
-            f"""<div style="display:flex; align-items:center; gap:0.5rem; font-family:'Space Grotesk', sans-serif;
-                 font-weight:700; color:#14213D; font-size:1.1rem; margin:0.4rem 0 0.6rem 0;">
-                 {img_html(escudo_sel, size=26, radius="4px")} {jugador_sel['Jugador']}
-                 <span style="font-family:'Inter', sans-serif; font-weight:500; color:#6B7280; font-size:0.85rem;">
-                 · {jugador_sel['Equipo']} ({jugador_sel['Temporada']})</span></div>"""
+            f"""<div style="display:flex; align-items:center; gap:0.7rem; margin:0.5rem 0 0.7rem 0;
+                 background:#FFFFFF; border:1px solid #E4E1D8; border-radius:10px; padding:0.5rem 0.8rem;">
+                 {img_html(foto_sel, size=52, radius="50%", border="#E4E1D8", con_silueta=True)}
+                 <div>
+                 <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.1rem;">
+                 {jugador_sel['Jugador']}</div>
+                 <div style="font-family:'Inter', sans-serif; font-weight:500; color:#6B7280; font-size:0.85rem;
+                      display:flex; align-items:center; gap:0.35rem; margin-top:0.1rem;">
+                 {img_html(escudo_sel, size=18, radius="3px")} {jugador_sel['Equipo']} ({jugador_sel['Temporada']})
+                 </div></div></div>"""
         )
         return jugador_sel
 
