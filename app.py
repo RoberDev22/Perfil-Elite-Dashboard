@@ -259,6 +259,74 @@ def hex_to_rgba(hex_color, alpha=0.25):
     r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
     return f"rgba({r}, {g}, {b}, {alpha})"
 
+
+# Mapa de zonas "aproximado": no tenemos datos de eventos con coordenadas x/y
+# de cada partido (Sofascore solo ofrece mapa de calor por partido individual,
+# no agregado por temporada, y no es viable reconstruirlo para 1ª RFEF), así
+# que aproximamos la intensidad por zona a partir de las estadísticas por zona
+# que sí tenemos en el dataset (Wyscout), comparadas contra el resto de su
+# grupo de posición.
+ZONA_VARS = {
+    "Zona defensiva": "Duelos defensivos/90",
+    "Último tercio": "Pases en el último tercio/90",
+    "Banda izquierda": "Centros desde la banda izquierda/90",
+    "Área rival": "Toques en el área de penalti/90",
+    "Banda derecha": "Centros desde la banda derecha/90",
+}
+
+# (x0, y0, x1, y1) de cada zona sobre un campo horizontal 0-100 x 0-70,
+# atacando hacia la derecha. Las tres zonas del último tercio (banda izq,
+# área rival, banda der) se reparten en anchura para no dejar huecos.
+ZONA_RECTS = {
+    "Zona defensiva": (0, 0, 40, 70),
+    "Último tercio": (40, 0, 70, 70),
+    "Banda izquierda": (70, 46, 100, 70),
+    "Área rival": (70, 23, 100, 46),
+    "Banda derecha": (70, 0, 100, 23),
+}
+
+
+def fig_mapa_zonas(fila, grupo, color):
+    """Campo horizontal dividido en 5 zonas, coloreadas según el percentil del
+    jugador (dentro de su grupo de posición) en la estadística proxy de esa
+    zona. Cuanto más intenso el color, mayor su percentil en esa zona."""
+    sub_grupo = rfef[rfef["grupo"] == grupo]
+    fig = go.Figure()
+
+    # Contorno del campo
+    fig.add_shape(type="rect", x0=0, y0=0, x1=100, y1=70,
+                   line=dict(color="#B7CDBB", width=2), fillcolor="#F5FAF6", layer="below")
+    fig.add_shape(type="line", x0=40, y0=0, x1=40, y1=70, line=dict(color="#D8D4C8", width=1, dash="dot"))
+    fig.add_shape(type="line", x0=70, y0=0, x1=70, y1=70, line=dict(color="#D8D4C8", width=1, dash="dot"))
+    fig.add_shape(type="rect", x0=88, y0=23, x1=100, y1=47,
+                   line=dict(color="#B7CDBB", width=1), fillcolor="rgba(0,0,0,0)")
+
+    for zona, var in ZONA_VARS.items():
+        x0, y0, x1, y1 = ZONA_RECTS[zona]
+        valor = fila.get(var, float("nan"))
+        if pd.notna(valor) and var in sub_grupo.columns and len(sub_grupo) > 1:
+            percentil = (sub_grupo[var] < valor).mean() * 100
+        else:
+            percentil = 0
+        alpha = 0.12 + 0.70 * (percentil / 100)
+        fig.add_shape(type="rect", x0=x0, y0=y0, x1=x1, y1=y1,
+                      line=dict(color="#FFFFFF", width=2), fillcolor=hex_to_rgba(color, alpha))
+        fig.add_annotation(
+            x=(x0 + x1) / 2, y=(y0 + y1) / 2,
+            text=f"<b>{zona}</b><br>percentil {percentil:.0f}<br>{valor:.2f}/90",
+            showarrow=False, font=dict(size=11, family="Inter, sans-serif", color="#14213D"),
+            align="center",
+        )
+
+    fig.update_xaxes(visible=False, range=[0, 100])
+    fig.update_yaxes(visible=False, range=[0, 70], scaleanchor="x", scaleratio=1)
+    fig.update_layout(
+        height=300, margin=dict(l=10, r=10, t=10, b=10),
+        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", showlegend=False,
+    )
+    return fig
+
+
 VALIDACION_EMPIRICA = [
     "Fer López", "A. Ezzalzouli", "Pablo Torre", "Jan Virgili",
     "Pau Víctor", "Fermín López", "Victor Muñoz",
@@ -856,6 +924,14 @@ with tab_destacados:
                                     f"temporada, así que también refleja cambios en el nivel general del grupo, no solo en el jugador.")
 
                 st.caption(explicacion)
+
+            st.markdown("##### Mapa de zonas (aproximado)")
+            st.caption("No hay datos de eventos con coordenadas x/y por partido para construir un mapa de calor "
+                       "real, así que este mapa aproxima su intensidad por zona a partir de estadísticas por "
+                       "zona (centros por banda, toques en el área, pases al último tercio, duelos defensivos), "
+                       "comparadas contra el resto de su grupo de posición. Cuanto más intenso el color, mayor "
+                       "su percentil en esa zona.")
+            st.plotly_chart(fig_mapa_zonas(ultima, grupo_hist, color), width='stretch')
 
 # ---------------------------------------------------------------------------
 # TAB 6 — Fuera de RFEF
