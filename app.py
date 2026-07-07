@@ -859,7 +859,7 @@ with tab_destacados:
                 fig_evo = go.Figure()
                 fig_evo.add_trace(go.Scatter(
                     x=valores_grupo, y=jitter, mode="markers", name="Resto del grupo",
-                    marker=dict(size=6, color="#D8D4C8", opacity=0.65, line=dict(width=0)),
+                    marker=dict(size=7, color="#8A93A6", opacity=0.8, line=dict(width=0)),
                     hoverinfo="skip",
                 ))
                 fig_evo.add_vline(x=media_grupo_hist, line_width=1, line_dash="dot", line_color="#6B7280",
@@ -867,9 +867,16 @@ with tab_destacados:
 
                 for i_temp, (_, fila_t) in enumerate(historial.iterrows()):
                     y_off = 0 if len(historial) == 1 else (0.55 if i_temp % 2 == 0 else -0.55)
+                    # Halo debajo del punto del jugador, para que destaque con claridad
+                    # sobre el resto del grupo.
+                    fig_evo.add_trace(go.Scatter(
+                        x=[fila_t["score_final"]], y=[y_off], mode="markers",
+                        marker=dict(size=28, color=hex_to_rgba(color, 0.25), line=dict(width=0)),
+                        showlegend=False, hoverinfo="skip",
+                    ))
                     fig_evo.add_trace(go.Scatter(
                         x=[fila_t["score_final"]], y=[y_off], mode="markers+text",
-                        marker=dict(size=16, color=color, line=dict(width=2, color="#FFFFFF")),
+                        marker=dict(size=18, color=color, line=dict(width=3, color="#FFFFFF")),
                         text=[f"{fila_t['Temporada']}: {fila_t['score_final']:.1f}"],
                         textposition="top center" if y_off >= 0 else "bottom center",
                         textfont=dict(size=11, color=color, family="Space Grotesk, sans-serif"),
