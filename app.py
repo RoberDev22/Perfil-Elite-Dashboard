@@ -729,6 +729,7 @@ with tab_destacados:
         ultima = historial.sort_values("score_final", ascending=False).iloc[0]
         extra_row = destacados_extra[destacados_extra["Jugador"] == nombre]
         color = GRUPO_COLOR.get(ultima["grupo"], "#2E9E5B")
+        grupo_hist = ultima["grupo"]
         foto_d = buscar_imagen("jugadores", ultima["Jugador"])
         escudo_d = buscar_imagen("escudos", ultima["Equipo"])
         equipo_actual = EQUIPO_ACTUAL.get(nombre)
@@ -736,73 +737,119 @@ with tab_destacados:
         nota_actual = EQUIPO_ACTUAL_NOTA.get(nombre)
 
         with st.container(border=True):
-            render_html(
-                f"""<div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.3rem;
-                     background:#FFFFFF; border-radius:10px; padding:0.6rem 0.9rem;">
-                    {img_html(foto_d, size=76, radius="50%", border="#E4E1D8", con_silueta=True)}
-                    <div>
-                    <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.5rem;">
-                    {ultima['Jugador']}</div>
-                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.95rem;
-                         display:flex; align-items:center; gap:0.4rem;">
-                    {img_html(escudo_d, size=24, radius="3px")}
-                    {ultima['Equipo']} · temporada destacada: {ultima['Temporada']}</div>
-                    </div></div>"""
-            )
-            pill_actual = ""
-            if equipo_actual:
-                pill_actual = f"""<div style="background:#FFF8EC; border:1px solid #E8A33D; border-left:5px solid #E8A33D;
-                     border-radius:8px; padding:0.4rem 0.9rem; display:inline-flex; align-items:center; gap:0.4rem;
-                     font-family:'Space Grotesk', sans-serif; font-weight:600; color:#14213D; font-size:0.95rem;">
-                     {img_html(escudo_actual, size=24, radius="3px")}
-                     Actualmente en: {equipo_actual}</div>"""
+            col_side, col_main = st.columns([1, 2.6])
 
-            render_html(
-                f"""<div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.8rem;">
-                     <div style="background:#FFFFFF; border:1px solid {color}; border-left:5px solid {color};
-                     border-radius:8px; padding:0.4rem 0.9rem; display:inline-flex; align-items:center;
-                     font-family:'Space Grotesk', sans-serif; font-weight:600; color:#14213D; font-size:0.95rem;">
-                     {ultima['arquetipo_proyectado']} · {ultima['grupo']}</div>
-                     {pill_actual}</div>"""
-            )
-            if equipo_actual and nota_actual:
-                st.caption(f"📌 {nota_actual}")
-            if equipo_actual:
-                st.caption(f"Equipo actual verificado a {EQUIPO_ACTUAL_ACTUALIZADO}; puede cambiar con el mercado de fichajes.")
+            with col_side:
+                render_html(
+                    f"""<div style="text-align:center;">
+                         {img_html(foto_d, size=100, radius="50%", border="#E4E1D8", con_silueta=True)}
+                         </div>""",
+                    container=col_side,
+                )
+                render_html(
+                    f"""<div style="text-align:center; font-family:'Space Grotesk', sans-serif; font-weight:700;
+                         color:#14213D; font-size:1.2rem; margin-top:0.5rem;">{ultima['Jugador']}</div>
+                         <div style="text-align:center; font-family:'Inter', sans-serif; color:#6B7280; font-size:0.85rem;
+                         display:flex; align-items:center; justify-content:center; gap:0.35rem; margin:0.15rem 0;">
+                         {img_html(escudo_d, size=20, radius="3px")} {ultima['Equipo']}</div>
+                         <div style="text-align:center; font-family:'Inter', sans-serif; color:#9AA0A6; font-size:0.75rem;
+                         margin-bottom:0.7rem;">temporada destacada: {ultima['Temporada']}</div>""",
+                    container=col_side,
+                )
+                render_html(
+                    f"""<div style="background:#FFFFFF; border:1px solid {color}; border-left:5px solid {color};
+                         border-radius:8px; padding:0.4rem 0.6rem; font-family:'Space Grotesk', sans-serif;
+                         font-weight:600; color:#14213D; font-size:0.85rem; text-align:center; margin-bottom:0.4rem;">
+                         {ultima['arquetipo_proyectado']} · {ultima['grupo']}</div>""",
+                    container=col_side,
+                )
 
-            if not extra_row.empty:
-                e = extra_row.iloc[0]
-                chips = [
-                    ("Altura", f"{int(e['Altura'])} cm" if pd.notna(e["Altura"]) and e["Altura"] > 0 else "N/D"),
-                    ("Pie", str(e["Pie"]).capitalize() if pd.notna(e["Pie"]) else "N/D"),
-                    ("Nacionalidad", str(e["Pasaporte"]) if pd.notna(e["Pasaporte"]) else "N/D"),
-                    ("Minutos jugados (su mejor temporada)", f"{int(ultima['Minutos jugados'])} min"),
-                    ("Vencimiento de contrato (dato más reciente)", str(e["Vencimiento contrato"]) if pd.notna(e["Vencimiento contrato"]) else "N/D"),
-                ]
-                cols_chip = st.columns(len(chips))
-                for col, (label, val) in zip(cols_chip, chips):
+                if equipo_actual:
                     render_html(
-                        f"""<div style="background:#FAF9F6; border:1px solid #E4E1D8; border-radius:8px;
-                             padding:0.5rem 0.6rem; text-align:center; height:100%;">
-                             <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.72rem;">{label}</div>
-                             <div style="font-family:'Space Grotesk', sans-serif; color:#14213D; font-weight:600; font-size:0.95rem;">{val}</div>
-                             </div>""",
-                        container=col,
+                        f"""<div style="background:#FFF8EC; border:1px solid #E8A33D; border-left:5px solid #E8A33D;
+                             border-radius:8px; padding:0.4rem 0.6rem; display:flex; align-items:center;
+                             justify-content:center; gap:0.35rem; font-family:'Space Grotesk', sans-serif;
+                             font-weight:600; color:#14213D; font-size:0.82rem; margin-bottom:0.3rem;">
+                             {img_html(escudo_actual, size=20, radius="3px")} Actualmente: {equipo_actual}</div>""",
+                        container=col_side,
                     )
-                st.caption("El vencimiento de contrato corresponde al último dato disponible (normalmente ya en su club "
-                           "actual tras el fichaje), no al contrato que tenía durante su etapa en 1ª RFEF.")
+                    if nota_actual:
+                        col_side.caption(f"📌 {nota_actual}")
+                    col_side.caption(f"Verificado a {EQUIPO_ACTUAL_ACTUALIZADO}.")
 
-            colE, colF = st.columns([1, 1.4])
-            with colE:
+                if not extra_row.empty:
+                    e = extra_row.iloc[0]
+                    datos_bio = [
+                        ("Altura", f"{int(e['Altura'])} cm" if pd.notna(e["Altura"]) and e["Altura"] > 0 else "N/D"),
+                        ("Pie", str(e["Pie"]).capitalize() if pd.notna(e["Pie"]) else "N/D"),
+                        ("Nacionalidad", str(e["Pasaporte"]) if pd.notna(e["Pasaporte"]) else "N/D"),
+                        ("Minutos (mejor temp.)", f"{int(ultima['Minutos jugados'])} min"),
+                        ("Vencimiento contrato", str(e["Vencimiento contrato"]) if pd.notna(e["Vencimiento contrato"]) else "N/D"),
+                    ]
+                    filas_bio = "".join(
+                        f"""<div style="display:flex; justify-content:space-between; padding:0.32rem 0;
+                             border-bottom:1px solid #F0EEE7; font-family:'Inter', sans-serif; font-size:0.8rem;">
+                             <span style="color:#6B7280;">{label}</span>
+                             <span style="color:#14213D; font-weight:600; text-align:right;">{val}</span></div>"""
+                        for label, val in datos_bio
+                    )
+                    render_html(
+                        f"""<div style="background:#FFFFFF; border:1px solid #E4E1D8; border-radius:8px;
+                             padding:0.3rem 0.7rem; margin-top:0.5rem;">{filas_bio}</div>""",
+                        container=col_side,
+                    )
+                    col_side.caption("El vencimiento de contrato es el dato más reciente disponible, no necesariamente "
+                                      "el de su etapa en 1ª RFEF.")
+
+            with col_main:
                 render_html(
                     f"""<div style="background:#FFFFFF; border:1px solid #E4E1D8; border-radius:10px;
-                         padding:0.8rem 1rem; margin-top:0.9rem; font-family:'Inter', sans-serif; color:#14213D;
-                         font-size:0.95rem; line-height:1.5;">
+                         padding:0.8rem 1rem; font-family:'Inter', sans-serif; color:#14213D;
+                         font-size:0.95rem; line-height:1.5; margin-bottom:0.9rem;">
                          {VALIDACION_TEXTO.get(nombre, '')}</div>""",
-                    container=colE,
+                    container=col_main,
                 )
-            with colF:
-                grupo_hist = ultima["grupo"]
+
+                colG, colH = col_main.columns(2)
+                with colG:
+                    st.markdown("**Por qué tiene este score (SHAP):**")
+                    factores = ultima["shap_top_factores"].split(" | ")
+                    nombres_shap = [f.split(" (")[0] for f in factores]
+                    valores_shap = [float(f.split("(")[1].replace(")", "").replace("+", "").replace("−", "-"))
+                                    for f in factores]
+                    colores_shap = ["#2E9E5B" if v >= 0 else "#B33A3A" for v in valores_shap]
+                    fig_shap_d = go.Figure(go.Bar(
+                        x=valores_shap, y=nombres_shap, orientation="h", marker_color=colores_shap,
+                        text=[f"{v:+.1f}" for v in valores_shap], textposition="outside",
+                    ))
+                    fig_shap_d.update_layout(
+                        height=260, margin=dict(l=10, r=10, t=10, b=10),
+                        xaxis_title="Contribución al score (SHAP)",
+                        font=dict(family="Inter, sans-serif", color="#14213D"),
+                        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+                    )
+                    st.plotly_chart(fig_shap_d, width='stretch')
+
+                with colH:
+                    radar_vars_d = RADAR_VARS[grupo_hist]
+                    valores_pct_d = [percentiles[grupo_hist].loc[ultima.name, v] for v in radar_vars_d]
+                    fig_radar_d = go.Figure()
+                    fig_radar_d.add_trace(go.Scatterpolar(
+                        r=valores_pct_d + [valores_pct_d[0]],
+                        theta=radar_vars_d + [radar_vars_d[0]],
+                        fill="toself", name=nombre, line_color=color,
+                        fillcolor=hex_to_rgba(color, 0.25),
+                    ))
+                    fig_radar_d.update_layout(
+                        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+                        showlegend=False, height=260, margin=dict(l=30, r=30, t=30, b=20),
+                        title=dict(text=f"Percentil en su grupo ({grupo_hist})", font=dict(size=12)),
+                        font=dict(family="Inter, sans-serif", color="#14213D", size=10),
+                        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+                    )
+                    st.plotly_chart(fig_radar_d, width='stretch')
+
+                st.markdown("##### Evolución del score por temporada")
                 media_grupo_hist = stats_score[grupo_hist]["media"]
                 valores_grupo = stats_score[grupo_hist]["valores"]
 
@@ -830,7 +877,7 @@ with tab_destacados:
                     ))
 
                 fig_evo.update_layout(
-                    height=260, margin=dict(l=20, r=20, t=45, b=30), showlegend=False,
+                    height=230, margin=dict(l=20, r=20, t=30, b=30), showlegend=False,
                     title=dict(text=f"Su score frente al resto de {grupo_hist.lower()}s analizados en 1ª RFEF",
                                font=dict(size=12, family="Space Grotesk, sans-serif")),
                     font=dict(family="Inter, sans-serif", color="#14213D", size=11),
@@ -857,45 +904,6 @@ with tab_destacados:
                                     f"temporada, así que también refleja cambios en el nivel general del grupo, no solo en el jugador.")
 
                 st.caption(explicacion)
-
-            colG, colH = st.columns([1, 1.2])
-            with colG:
-                st.markdown("**Por qué tiene este score (SHAP):**")
-                factores = ultima["shap_top_factores"].split(" | ")
-                nombres_shap = [f.split(" (")[0] for f in factores]
-                valores_shap = [float(f.split("(")[1].replace(")", "").replace("+", "").replace("−", "-"))
-                                for f in factores]
-                colores_shap = ["#2E9E5B" if v >= 0 else "#B33A3A" for v in valores_shap]
-                fig_shap_d = go.Figure(go.Bar(
-                    x=valores_shap, y=nombres_shap, orientation="h", marker_color=colores_shap,
-                    text=[f"{v:+.1f}" for v in valores_shap], textposition="outside",
-                ))
-                fig_shap_d.update_layout(
-                    height=240, margin=dict(l=10, r=10, t=10, b=10),
-                    xaxis_title="Contribución al score (SHAP)",
-                    font=dict(family="Inter, sans-serif", color="#14213D"),
-                    paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
-                )
-                st.plotly_chart(fig_shap_d, width='stretch')
-
-            with colH:
-                radar_vars_d = RADAR_VARS[grupo_hist]
-                valores_pct_d = [percentiles[grupo_hist].loc[ultima.name, v] for v in radar_vars_d]
-                fig_radar_d = go.Figure()
-                fig_radar_d.add_trace(go.Scatterpolar(
-                    r=valores_pct_d + [valores_pct_d[0]],
-                    theta=radar_vars_d + [radar_vars_d[0]],
-                    fill="toself", name=nombre, line_color=color,
-                    fillcolor=hex_to_rgba(color, 0.25),
-                ))
-                fig_radar_d.update_layout(
-                    polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-                    showlegend=False, height=280, margin=dict(l=30, r=30, t=30, b=20),
-                    title=f"Percentil dentro de su grupo ({grupo_hist}, 1ª RFEF)",
-                    font=dict(family="Inter, sans-serif", color="#14213D", size=11),
-                    paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
-                )
-                st.plotly_chart(fig_radar_d, width='stretch')
 
 # ---------------------------------------------------------------------------
 # TAB 6 — Fuera de RFEF
