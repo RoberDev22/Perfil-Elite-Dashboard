@@ -488,6 +488,15 @@ with tab_ficha:
     st.subheader("Ficha individual")
     rfef_validos = rfef.dropna(subset=["Jugador", "Equipo", "Temporada"]).copy()
 
+    def label_icono_ficha(icono, texto, container):
+        render_html(
+            f"""<div style="display:flex; align-items:center; gap:0.3rem; margin-bottom:-0.55rem;
+                 font-family:'Inter', sans-serif; font-weight:600; color:#14213D; font-size:0.875rem;">
+                 <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.05rem;
+                 color:#6B7280; vertical-align:-2px;">{icono}</span>{texto}</div>""",
+            container=container,
+        )
+
     with st.container(border=True):
         render_html(
             """<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.7rem;
@@ -497,11 +506,15 @@ with tab_ficha:
         )
         col_eq_f, col_temp_f = st.columns(2)
         with col_eq_f:
-            eq_filtro_f = st.multiselect(":material/shield: Equipo", sorted(rfef_validos["Equipo"].unique()),
-                                          default=[], key="ficha_eq_filtro", placeholder="Todos los equipos")
+            label_icono_ficha("shield", "Equipo", col_eq_f)
+            eq_filtro_f = st.multiselect(" ", sorted(rfef_validos["Equipo"].unique()),
+                                          default=[], key="ficha_eq_filtro", placeholder="Todos los equipos",
+                                          label_visibility="collapsed")
         with col_temp_f:
-            temp_filtro_f = st.multiselect(":material/calendar_month: Temporada", sorted(rfef_validos["Temporada"].unique()),
-                                            default=[], key="ficha_temp_filtro", placeholder="Todas las temporadas")
+            label_icono_ficha("calendar_month", "Temporada", col_temp_f)
+            temp_filtro_f = st.multiselect(" ", sorted(rfef_validos["Temporada"].unique()),
+                                            default=[], key="ficha_temp_filtro", placeholder="Todas las temporadas",
+                                            label_visibility="collapsed")
 
         rfef_filtrado_f = rfef_validos
         if eq_filtro_f:
@@ -515,8 +528,9 @@ with tab_ficha:
 
         opciones = (rfef_filtrado_f["Jugador"] + " — " + rfef_filtrado_f["Equipo"] + " (" + rfef_filtrado_f["Temporada"] + ")").tolist()
         idx_map = dict(zip(opciones, rfef_filtrado_f.index))
-        seleccion = st.selectbox(":material/person_search: Selecciona un jugador", opciones,
-                                  index=opciones.index(opciones[0]) if opciones else 0)
+        label_icono_ficha("person_search", "Selecciona un jugador", st)
+        seleccion = st.selectbox(" ", opciones, index=opciones.index(opciones[0]) if opciones else 0,
+                                  label_visibility="collapsed")
         st.caption(f"{len(opciones)} ficha(s) disponibles con estos filtros.")
 
     jugador = rfef.loc[idx_map[seleccion]]
