@@ -858,6 +858,45 @@ with tab_destacados:
 
                 st.caption(explicacion)
 
+            colG, colH = st.columns([1, 1.2])
+            with colG:
+                st.markdown("**Por qué tiene este score (SHAP):**")
+                factores = ultima["shap_top_factores"].split(" | ")
+                nombres_shap = [f.split(" (")[0] for f in factores]
+                valores_shap = [float(f.split("(")[1].replace(")", "").replace("+", "").replace("−", "-"))
+                                for f in factores]
+                colores_shap = ["#2E9E5B" if v >= 0 else "#B33A3A" for v in valores_shap]
+                fig_shap_d = go.Figure(go.Bar(
+                    x=valores_shap, y=nombres_shap, orientation="h", marker_color=colores_shap,
+                    text=[f"{v:+.1f}" for v in valores_shap], textposition="outside",
+                ))
+                fig_shap_d.update_layout(
+                    height=240, margin=dict(l=10, r=10, t=10, b=10),
+                    xaxis_title="Contribución al score (SHAP)",
+                    font=dict(family="Inter, sans-serif", color="#14213D"),
+                    paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+                )
+                st.plotly_chart(fig_shap_d, width='stretch')
+
+            with colH:
+                radar_vars_d = RADAR_VARS[grupo_hist]
+                valores_pct_d = [percentiles[grupo_hist].loc[ultima.name, v] for v in radar_vars_d]
+                fig_radar_d = go.Figure()
+                fig_radar_d.add_trace(go.Scatterpolar(
+                    r=valores_pct_d + [valores_pct_d[0]],
+                    theta=radar_vars_d + [radar_vars_d[0]],
+                    fill="toself", name=nombre, line_color=color,
+                    fillcolor=hex_to_rgba(color, 0.25),
+                ))
+                fig_radar_d.update_layout(
+                    polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+                    showlegend=False, height=280, margin=dict(l=30, r=30, t=30, b=20),
+                    title=f"Percentil dentro de su grupo ({grupo_hist}, 1ª RFEF)",
+                    font=dict(family="Inter, sans-serif", color="#14213D", size=11),
+                    paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+                )
+                st.plotly_chart(fig_radar_d, width='stretch')
+
 # ---------------------------------------------------------------------------
 # TAB 6 — Fuera de RFEF
 # ---------------------------------------------------------------------------
