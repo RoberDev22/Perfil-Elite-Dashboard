@@ -132,6 +132,19 @@ def render_html(html, container=None):
     limpio = " ".join(line.strip() for line in html.strip().split("\n"))
     destino.markdown(limpio, unsafe_allow_html=True)
 
+
+def render_label_icono(icono, texto, container=None, color_icono="#6B7280"):
+    """Label pequeño con icono Material Symbols delante, para usar justo encima de
+    un widget con label_visibility='collapsed' (los shortcodes :material/icono: no
+    se procesan dentro de labels de multiselect/selectbox, así que se monta a mano)."""
+    render_html(
+        f"""<div style="display:flex; align-items:center; gap:0.3rem; margin-bottom:-0.55rem;
+             font-family:'Inter', sans-serif; font-weight:600; color:#14213D; font-size:0.875rem;">
+             <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.05rem;
+             color:{color_icono}; vertical-align:-2px;">{icono}</span>{texto}</div>""",
+        container=container,
+    )
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
@@ -388,22 +401,31 @@ with tab_ranking:
     st.subheader("Ranking de jugadores de 1ª RFEF proyectados sobre el espacio de LaLiga")
 
     with st.container(border=True):
-        st.markdown("**Filtros**")
+        render_html(
+            """<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.9rem;
+                 font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.05rem;">
+                 <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.35rem;
+                 color:#1B4332; vertical-align:-3px;">tune</span>Filtros</div>"""
+        )
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            grupos_sel = st.multiselect("Posición", sorted(rfef["grupo"].unique()),
+            render_label_icono("sports_soccer", "Posición", col1)
+            grupos_sel = st.multiselect(" ", sorted(rfef["grupo"].unique()),
                                          default=sorted(rfef["grupo"].unique()),
-                                         placeholder="Elige una o varias opciones")
+                                         placeholder="Elige una o varias opciones", label_visibility="collapsed")
         with col2:
+            render_label_icono("auto_awesome", "Arquetipo", col2)
             arquetipos_disp = sorted(rfef[rfef["grupo"].isin(grupos_sel)]["arquetipo_proyectado"].unique()) if grupos_sel else []
-            arquetipos_sel = st.multiselect("Arquetipo", arquetipos_disp, default=arquetipos_disp,
-                                             placeholder="Elige una o varias opciones")
+            arquetipos_sel = st.multiselect(" ", arquetipos_disp, default=arquetipos_disp,
+                                             placeholder="Elige una o varias opciones", label_visibility="collapsed")
         with col3:
-            temporadas_sel = st.multiselect("Temporada", sorted(rfef["Temporada"].unique()),
+            render_label_icono("calendar_month", "Temporada", col3)
+            temporadas_sel = st.multiselect(" ", sorted(rfef["Temporada"].unique()),
                                              default=sorted(rfef["Temporada"].unique()),
-                                             placeholder="Elige una o varias opciones")
+                                             placeholder="Elige una o varias opciones", label_visibility="collapsed")
         with col4:
-            score_min = st.slider("Score mínimo", 0, 100, 0)
+            render_label_icono("speed", "Score mínimo", col4)
+            score_min = st.slider(" ", 0, 100, 0, label_visibility="collapsed")
 
     filtro = (
         rfef["grupo"].isin(grupos_sel)
