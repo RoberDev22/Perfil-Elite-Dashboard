@@ -274,57 +274,94 @@ ZONA_VARS = {
     "Banda derecha": "Centros desde la banda derecha/90",
 }
 
-# (x0, y0, x1, y1) de cada zona sobre un campo horizontal 0-100 x 0-70,
-# atacando hacia la derecha. Las tres zonas del último tercio (banda izq,
-# área rival, banda der) se reparten en anchura para no dejar huecos.
-ZONA_RECTS = {
-    "Zona defensiva": (0, 0, 40, 70),
-    "Último tercio": (40, 0, 70, 70),
-    "Banda izquierda": (70, 46, 100, 70),
-    "Área rival": (70, 23, 100, 46),
-    "Banda derecha": (70, 0, 100, 23),
+# Centro (x, y) y dispersión de cada zona sobre un campo real de 105x68 m,
+# atacando hacia la derecha (portería rival en x=105).
+ZONA_CENTROIDES = {
+    "Zona defensiva": (18, 34, 16),
+    "Último tercio": (52, 34, 13),
+    "Banda izquierda": (90, 54, 8),
+    "Área rival": (96, 34, 7),
+    "Banda derecha": (90, 14, 8),
 }
 
+# Escala de color estilo Sofascore/heatmap: transparente en baja densidad,
+# pasando por amarillo-naranja hasta rojo intenso en la zona más caliente.
+HEATMAP_COLORSCALE = [
+    [0.0, "rgba(0,0,0,0)"],
+    [0.15, "rgba(255,255,150,0.25)"],
+    [0.35, "rgba(255,210,80,0.55)"],
+    [0.6, "rgba(255,140,40,0.75)"],
+    [0.8, "rgba(230,70,30,0.85)"],
+    [1.0, "rgba(180,20,20,0.95)"],
+]
 
-def fig_mapa_zonas(fila, grupo, color):
-    """Campo horizontal dividido en 5 zonas, coloreadas según el percentil del
-    jugador (dentro de su grupo de posición) en la estadística proxy de esa
-    zona. Cuanto más intenso el color, mayor su percentil en esa zona."""
+
+def _pitch_shapes(fig):
+    """Dibuja las líneas de un campo de fútbol real (105x68 m) en blanco
+    sobre fondo verde, atacando hacia la derecha."""
+    L, W = 105, 68
+    linea = dict(color="rgba(255,255,255,0.85)", width=2)
+    # Contorno y fondo del campo
+    fig.add_shape(type="rect", x0=0, y0=0, x1=L, y1=W,
+                   line=linea, fillcolor="#2E7D46", layer="below")
+    # Línea de medio campo
+    fig.add_shape(type="line", x0=L / 2, y0=0, x1=L / 2, y1=W, line=linea)
+    # Círculo central
+    fig.add_shape(type="circle", x0=L / 2 - 9.15, y0=W / 2 - 9.15,
+                   x1=L / 2 + 9.15, y1=W / 2 + 9.15, line=linea)
+    fig.add_shape(type="circle", x0=L / 2 - 0.4, y0=W / 2 - 0.4,
+                  x1=L / 2 + 0.4, y1=W / 2 + 0.4, line=linea, fillcolor="rgba(255,255,255,0.85)")
+    # Áreas grandes y pequeñas + punto de penalti, en ambas porterías
+    for x0, x1, sign in [(0, 16.5, 1), (L - 16.5, L, -1)]:
+        fig.add_shape(type="rect", x0=x0, y0=(W - 40.32) / 2, x1=x1, y1=(W + 40.32) / 2, line=linea)
+    for x0, x1 in [(0, 5.5), (L - 5.5, L)]:
+        fig.add_shape(type="rect", x0=x0, y0=(W - 18.32) / 2, x1=x1, y1=(W + 18.32) / 2, line=linea)
+    for px in (11, L - 11):
+        fig.add_shape(type="circle", x0=px - 0.35, y0=W / 2 - 0.35, x1=px + 0.35, y1=W / 2 + 0.35,
+                      line=linea, fillcolor="rgba(255,255,255,0.85)")
+    return fig
+
+
+def fig_mapa_zonas(fila, grupo, color, nombre_jugador=""):
+    """Campo real (105x68 m) con un mapa de calor de degradado suave, estilo
+    Sofascore, generado a partir de nubes de puntos sintéticas por zona. La
+    densidad de puntos de cada zona depende del percentil del jugador en la
+    estadística proxy de esa zona, dentro de su grupo de posición."""
     sub_grupo = rfef[rfef["grupo"] == grupo]
-    fig = go.Figure()
+    rng = np.random.default_rng(abs(hash(nombre_jugador)) % (2**32))
 
-    # Contorno del campo
-    fig.add_shape(type="rect", x0=0, y0=0, x1=100, y1=70,
-                   line=dict(color="#B7CDBB", width=2), fillcolor="#F5FAF6", layer="below")
-    fig.add_shape(type="line", x0=40, y0=0, x1=40, y1=70, line=dict(color="#D8D4C8", width=1, dash="dot"))
-    fig.add_shape(type="line", x0=70, y0=0, x1=70, y1=70, line=dict(color="#D8D4C8", width=1, dash="dot"))
-    fig.add_shape(type="rect", x0=88, y0=23, x1=100, y1=47,
-                   line=dict(color="#B7CDBB", width=1), fillcolor="rgba(0,0,0,0)")
-
+    xs, ys = [], []
+    detalle = []
     for zona, var in ZONA_VARS.items():
-        x0, y0, x1, y1 = ZONA_RECTS[zona]
+        cx, cy, spread = ZONA_CENTROIDES[zona]
         valor = fila.get(var, float("nan"))
         if pd.notna(valor) and var in sub_grupo.columns and len(sub_grupo) > 1:
             percentil = (sub_grupo[var] < valor).mean() * 100
         else:
             percentil = 0
-        alpha = 0.12 + 0.70 * (percentil / 100)
-        fig.add_shape(type="rect", x0=x0, y0=y0, x1=x1, y1=y1,
-                      line=dict(color="#FFFFFF", width=2), fillcolor=hex_to_rgba(color, alpha))
-        fig.add_annotation(
-            x=(x0 + x1) / 2, y=(y0 + y1) / 2,
-            text=f"<b>{zona}</b><br>percentil {percentil:.0f}<br>{valor:.2f}/90",
-            showarrow=False, font=dict(size=11, family="Inter, sans-serif", color="#14213D"),
-            align="center",
-        )
+        n_puntos = int(25 + 2.3 * percentil)
+        xs.extend(rng.normal(cx, spread * 0.55, n_puntos))
+        ys.extend(rng.normal(cy, spread * 0.42, n_puntos))
+        detalle.append((zona, percentil, valor))
 
-    fig.update_xaxes(visible=False, range=[0, 100])
-    fig.update_yaxes(visible=False, range=[0, 70], scaleanchor="x", scaleratio=1)
+    fig = go.Figure()
+    _pitch_shapes(fig)
+
+    fig.add_trace(go.Histogram2dContour(
+        x=xs, y=ys, colorscale=HEATMAP_COLORSCALE, showscale=False,
+        ncontours=18, line=dict(width=0),
+        contours=dict(coloring="fill"),
+        xbins=dict(start=0, end=105, size=3), ybins=dict(start=0, end=68, size=3),
+        hoverinfo="skip",
+    ))
+
+    fig.update_xaxes(visible=False, range=[0, 105], fixedrange=True)
+    fig.update_yaxes(visible=False, range=[0, 68], scaleanchor="x", scaleratio=1, fixedrange=True)
     fig.update_layout(
-        height=300, margin=dict(l=10, r=10, t=10, b=10),
-        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", showlegend=False,
+        height=320, margin=dict(l=10, r=10, t=10, b=10),
+        paper_bgcolor="#FFFFFF", plot_bgcolor="#2E7D46", showlegend=False,
     )
-    return fig
+    return fig, detalle
 
 
 VALIDACION_EMPIRICA = [
@@ -925,13 +962,15 @@ with tab_destacados:
 
                 st.caption(explicacion)
 
-            st.markdown("##### Mapa de zonas (aproximado)")
-            st.caption("No hay datos de eventos con coordenadas x/y por partido para construir un mapa de calor "
-                       "real, así que este mapa aproxima su intensidad por zona a partir de estadísticas por "
-                       "zona (centros por banda, toques en el área, pases al último tercio, duelos defensivos), "
-                       "comparadas contra el resto de su grupo de posición. Cuanto más intenso el color, mayor "
-                       "su percentil en esa zona.")
-            st.plotly_chart(fig_mapa_zonas(ultima, grupo_hist, color), width='stretch')
+            st.markdown("##### Mapa de calor (aproximado)")
+            st.caption("Sofascore no ofrece un mapa de calor agregado por temporada (solo por partido individual), "
+                       "así que este se construye a partir de estadísticas por zona (centros por banda, toques en "
+                       "el área, pases al último tercio, duelos defensivos) comparadas contra el resto de su grupo "
+                       "de posición: cuanto mejor su percentil en una zona, más 'caliente' se pinta esa zona del campo.")
+            fig_calor, detalle_zonas = fig_mapa_zonas(ultima, grupo_hist, color, nombre_jugador=nombre)
+            st.plotly_chart(fig_calor, width='stretch')
+            resumen_zonas = " · ".join(f"{z}: percentil {p:.0f}" for z, p, _ in detalle_zonas)
+            st.caption(resumen_zonas)
 
 # ---------------------------------------------------------------------------
 # TAB 6 — Fuera de RFEF
