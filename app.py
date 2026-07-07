@@ -173,9 +173,24 @@ div[data-testid="stMetricLabel"], div[data-testid="stMetricLabel"] p {
     fill: #14213D !important;
 }
 
-/* Contenedores con borde (tarjetas de validación empírica) */
+/* Contenedores con borde (tarjetas de validación empírica, jugadores destacados, etc.) */
 div[data-testid="stVerticalBlockBorderWrapper"] {
     border-radius: 12px !important; border: 1px solid #E4E1D8 !important;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(20, 33, 61, 0.10);
+    border-color: #C9C4B4 !important;
+}
+
+/* Tarjetas montadas a mano en HTML (validación empírica, previews del comparador) */
+.pe-hover-card {
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.pe-hover-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(20, 33, 61, 0.10);
 }
 
 /* Cabeceras de st.table (nombres de jugadores en el comparador) */
@@ -619,7 +634,7 @@ with tab_comparador:
         escudo_sel = buscar_imagen("escudos", jugador_sel["Equipo"])
         foto_sel = buscar_imagen("jugadores", jugador_sel["Jugador"])
         render_html(
-            f"""<div style="display:flex; align-items:center; gap:0.7rem; margin:0.5rem 0 0.7rem 0;
+            f"""<div class="pe-hover-card" style="display:flex; align-items:center; gap:0.7rem; margin:0.5rem 0 0.7rem 0;
                  background:#FFFFFF; border:1px solid #E4E1D8; border-radius:10px; padding:0.5rem 0.8rem;">
                  {img_html(foto_sel, size=52, radius="50%", border="#E4E1D8", con_silueta=True)}
                  <div>
@@ -695,7 +710,7 @@ with tab_validacion:
         foto_v = buscar_imagen("jugadores", fila["Jugador"])
         escudo_v = buscar_imagen("escudos", fila["Equipo"])
         render_html(
-            f"""<div style="border:1px solid #E4E1D8; border-left:6px solid {color}; border-radius:10px;
+            f"""<div class="pe-hover-card" style="border:1px solid #E4E1D8; border-left:6px solid {color}; border-radius:10px;
                  padding:1.1rem 1.4rem; margin-bottom:0.9rem; display:flex; gap:1.4rem; align-items:flex-start;
                  background:#FFFFFF;">
                 <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color};
