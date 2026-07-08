@@ -249,32 +249,66 @@ function marcarTarjetasConBorde() {
     });
 }
 // Streamlit no permite acotar st.sidebar a una sola pestaña de forma nativa:
-// la sidebar es global. Como los filtros de la sidebar son solo del Ranking,
-// se oculta/muestra por JS según qué pestaña esté activa (aria-selected).
+// la sidebar es global. Cada grupo de filtros (Ranking, Comparador) vive en su
+// propio st.container(border=True) dentro de la sidebar; se identifica cada
+// grupo por el texto de su cabecera y se le añade una clase propia para poder
+// mostrarlo/ocultarlo por separado según la pestaña activa.
+function marcarGruposSidebar() {
+    const doc = window.parent.document;
+    const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
+    if (!sidebar) return;
+    const cabeceras = sidebar.querySelectorAll('[data-testid="stMarkdownContainer"]');
+    cabeceras.forEach(function (h) {
+        const txt = h.innerText || '';
+        let cls = null;
+        if (txt.indexOf('Filtros del Ranking') !== -1) cls = 'pe-sidebar-group-ranking';
+        else if (txt.indexOf('Filtros del Comparador') !== -1) cls = 'pe-sidebar-group-comparador';
+        if (!cls) return;
+        let el = h.closest('div[data-testid="stVerticalBlock"]');
+        while (el) {
+            const cs = doc.defaultView.getComputedStyle(el);
+            if (cs.borderTopWidth !== '0px' && cs.borderTopStyle !== 'none') {
+                el.classList.add(cls);
+                break;
+            }
+            const padre = el.parentElement;
+            el = padre ? padre.closest('div[data-testid="stVerticalBlock"]') : null;
+        }
+    });
+}
+// Oculta/muestra la sidebar y, dentro de ella, el grupo de filtros que
+// corresponda según qué pestaña esté activa (aria-selected).
 function toggleSidebarPorTab() {
     const doc = window.parent.document;
     const tabs = doc.querySelectorAll('button[data-testid="stTab"]');
-    let encontrado = false;
-    let esRanking = true;
+    let activa = null;
     tabs.forEach(function (t) {
         if (t.getAttribute('aria-selected') === 'true') {
-            encontrado = true;
-            esRanking = (t.innerText || '').indexOf('Ranking') !== -1;
+            const txt = t.innerText || '';
+            if (txt.indexOf('Ranking') !== -1) activa = 'ranking';
+            else if (txt.indexOf('Comparador') !== -1) activa = 'comparador';
+            else activa = 'otra';
         }
     });
-    if (!encontrado) return;
+    if (activa === null) return;
     const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
     const control = doc.querySelector('[data-testid="stSidebarCollapsedControl"]');
+    const mostrarSidebar = activa === 'ranking' || activa === 'comparador';
     if (sidebar) {
-        sidebar.style.setProperty('display', esRanking ? '' : 'none', 'important');
+        sidebar.style.setProperty('display', mostrarSidebar ? '' : 'none', 'important');
+        const grupoRanking = sidebar.querySelector('.pe-sidebar-group-ranking');
+        const grupoComparador = sidebar.querySelector('.pe-sidebar-group-comparador');
+        if (grupoRanking) grupoRanking.style.setProperty('display', activa === 'ranking' ? '' : 'none', 'important');
+        if (grupoComparador) grupoComparador.style.setProperty('display', activa === 'comparador' ? '' : 'none', 'important');
     }
     if (control) {
-        control.style.setProperty('display', esRanking ? '' : 'none', 'important');
+        control.style.setProperty('display', mostrarSidebar ? '' : 'none', 'important');
     }
 }
 function refrescarTodo() {
     recolorTags();
     marcarTarjetasConBorde();
+    marcarGruposSidebar();
     toggleSidebarPorTab();
 }
 const target = window.parent.document.body;
@@ -420,55 +454,91 @@ tab_ranking, tab_ficha, tab_comparador, tab_validacion, tab_destacados, tab_fuer
 )
 
 # ---------------------------------------------------------------------------
-# Barra lateral — filtros del Ranking. Solo deben verse en la pestaña Ranking:
-# el bloque de JS más abajo (toggleSidebarPorTab) oculta/muestra la sidebar
-# según la pestaña activa, porque Streamlit no ofrece forma nativa de acotar
-# st.sidebar a una sola pestaña.
+# Barra lateral — filtros de Ranking y de Comparador, cada uno en su propio
+# grupo. Cada grupo solo debe verse en su pestaña correspondiente: el bloque
+# de JS más abajo (toggleSidebarPorTab / marcarGruposSidebar) oculta/muestra
+# la sidebar y el grupo activo según la pestaña seleccionada, porque Streamlit
+# no ofrece forma nativa de acotar st.sidebar a una sola pestaña.
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    render_html(
-        """<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;
-             font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.15rem;">
-             <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.5rem;
-             color:#1B4332; line-height:1;">tune</span>Filtros del Ranking</div>"""
-    )
+    with st.container(border=True):
+        render_html(
+            """<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;
+                 font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.15rem;">
+                 <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.5rem;
+                 color:#1B4332; line-height:1;">tune</span>Filtros del Ranking</div>"""
+        )
 
-    render_label_icono("sports_soccer", "Posición")
-    grupos_sel = st.multiselect(" ", sorted(rfef["grupo"].unique()),
-                                 default=sorted(rfef["grupo"].unique()),
-                                 placeholder="Elige una o varias opciones", label_visibility="collapsed")
-
-    render_label_icono("auto_awesome", "Arquetipo")
-    arquetipos_disp = sorted(rfef[rfef["grupo"].isin(grupos_sel)]["arquetipo_proyectado"].unique()) if grupos_sel else []
-    arquetipos_sel = st.multiselect(" ", arquetipos_disp, default=arquetipos_disp,
+        render_label_icono("sports_soccer", "Posición")
+        grupos_sel = st.multiselect(" ", sorted(rfef["grupo"].unique()),
+                                     default=sorted(rfef["grupo"].unique()),
                                      placeholder="Elige una o varias opciones", label_visibility="collapsed")
 
-    render_label_icono("calendar_month", "Temporada")
-    temporadas_sel = st.multiselect(" ", sorted(rfef["Temporada"].unique()),
-                                     default=sorted(rfef["Temporada"].unique()),
+        render_label_icono("auto_awesome", "Arquetipo")
+        arquetipos_disp = sorted(rfef[rfef["grupo"].isin(grupos_sel)]["arquetipo_proyectado"].unique()) if grupos_sel else []
+        arquetipos_sel = st.multiselect(" ", arquetipos_disp, default=arquetipos_disp,
+                                         placeholder="Elige una o varias opciones", label_visibility="collapsed")
+
+        render_label_icono("calendar_month", "Temporada")
+        temporadas_sel = st.multiselect(" ", sorted(rfef["Temporada"].unique()),
+                                         default=sorted(rfef["Temporada"].unique()),
+                                         placeholder="Elige una o varias opciones", label_visibility="collapsed")
+
+        render_label_icono("shield", "Equipo")
+        equipos_sel_rank = st.multiselect(" ", sorted(rfef["Equipo"].dropna().unique()),
+                                           default=[], placeholder="Todos los equipos", label_visibility="collapsed")
+
+        render_label_icono("public", "Nacionalidad")
+        paises_sel_rank = st.multiselect(" ", sorted(rfef["País de nacimiento"].dropna().unique()),
+                                          default=[], placeholder="Todas las nacionalidades", label_visibility="collapsed")
+
+        st.divider()
+
+        render_label_icono("speed", "Score mínimo")
+        score_min = st.slider(" ", 0, 100, 0, label_visibility="collapsed")
+
+        edad_min_data, edad_max_data = int(rfef["Edad"].min()), int(rfef["Edad"].max())
+        render_label_icono("cake", "Edad")
+        edad_rango = st.slider(" ", edad_min_data, edad_max_data,
+                                (edad_min_data, edad_max_data), label_visibility="collapsed")
+
+        min_min_data, min_max_data = int(rfef["Minutos jugados"].min()), int(rfef["Minutos jugados"].max())
+        render_label_icono("timer", "Minutos jugados (mínimo)")
+        minutos_min = st.slider(" ", min_min_data, min_max_data, min_min_data, label_visibility="collapsed")
+
+    with st.container(border=True):
+        render_html(
+            """<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;
+                 font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.15rem;">
+                 <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.5rem;
+                 color:#1B4332; line-height:1;">tune</span>Filtros del Comparador</div>"""
+        )
+
+        rfef_validos_comp = rfef.dropna(subset=["Jugador", "Equipo", "Temporada"]).copy()
+
+        def _selector_comp_sidebar(etiqueta, key_prefix, index_default):
+            render_label_icono("sports_soccer", f"Posición ({etiqueta})")
+            pos_sel = st.multiselect(" ", sorted(rfef_validos_comp["grupo"].unique()),
+                                      default=sorted(rfef_validos_comp["grupo"].unique()),
+                                      key=f"{key_prefix}_pos", label_visibility="collapsed")
+            sub = rfef_validos_comp[rfef_validos_comp["grupo"].isin(pos_sel)] if pos_sel else rfef_validos_comp
+            render_label_icono("shield", f"Equipo ({etiqueta})")
+            eq_sel = st.multiselect(" ", sorted(sub["Equipo"].unique()), default=[], key=f"{key_prefix}_eq",
                                      placeholder="Elige una o varias opciones", label_visibility="collapsed")
+            if eq_sel:
+                sub = sub[sub["Equipo"].isin(eq_sel)]
+            if sub.empty:
+                sub = rfef_validos_comp
+            opciones = (sub["Jugador"] + " — " + sub["Equipo"] + " (" + sub["Temporada"] + ")").tolist()
+            idx_map = dict(zip(opciones, sub.index))
+            render_label_icono("person", f"Jugador ({etiqueta})")
+            sel = st.selectbox(" ", opciones, index=min(index_default, len(opciones) - 1),
+                                key=f"{key_prefix}_sel", label_visibility="collapsed")
+            return sub.loc[idx_map[sel]]
 
-    render_label_icono("shield", "Equipo")
-    equipos_sel_rank = st.multiselect(" ", sorted(rfef["Equipo"].dropna().unique()),
-                                       default=[], placeholder="Todos los equipos", label_visibility="collapsed")
-
-    render_label_icono("public", "Nacionalidad")
-    paises_sel_rank = st.multiselect(" ", sorted(rfef["País de nacimiento"].dropna().unique()),
-                                      default=[], placeholder="Todas las nacionalidades", label_visibility="collapsed")
-
-    st.divider()
-
-    render_label_icono("speed", "Score mínimo")
-    score_min = st.slider(" ", 0, 100, 0, label_visibility="collapsed")
-
-    edad_min_data, edad_max_data = int(rfef["Edad"].min()), int(rfef["Edad"].max())
-    render_label_icono("cake", "Edad")
-    edad_rango = st.slider(" ", edad_min_data, edad_max_data,
-                            (edad_min_data, edad_max_data), label_visibility="collapsed")
-
-    min_min_data, min_max_data = int(rfef["Minutos jugados"].min()), int(rfef["Minutos jugados"].max())
-    render_label_icono("timer", "Minutos jugados (mínimo)")
-    minutos_min = st.slider(" ", min_min_data, min_max_data, min_min_data, label_visibility="collapsed")
+        j1 = _selector_comp_sidebar("Jugador 1", "j1", 0)
+        st.divider()
+        j2 = _selector_comp_sidebar("Jugador 2", "j2", 1)
 
 # ---------------------------------------------------------------------------
 # TAB 1 — Ranking
@@ -696,30 +766,10 @@ with tab_ficha:
 with tab_comparador:
     st.subheader("Comparador de jugadores")
     st.caption("Puedes comparar jugadores de la misma posición (radar con métricas específicas) "
-               "o de posiciones distintas (radar con métricas comunes de ataque).")
+               "o de posiciones distintas (radar con métricas comunes de ataque). Los filtros están "
+               "en la barra lateral izquierda.")
 
-    rfef_validos_comp = rfef.dropna(subset=["Jugador", "Equipo", "Temporada"]).copy()
-
-    def selector_jugador(etiqueta, key_prefix, index_default):
-        c_pos, c_eq = st.columns(2)
-        with c_pos:
-            pos_sel = st.multiselect(f"Posición ({etiqueta})", sorted(rfef_validos_comp["grupo"].unique()),
-                                      default=sorted(rfef_validos_comp["grupo"].unique()), key=f"{key_prefix}_pos")
-        sub = rfef_validos_comp[rfef_validos_comp["grupo"].isin(pos_sel)] if pos_sel else rfef_validos_comp
-        with c_eq:
-            eq_sel = st.multiselect(f"Equipo ({etiqueta})", sorted(sub["Equipo"].unique()),
-                                     default=[], key=f"{key_prefix}_eq", placeholder="Elige una o varias opciones")
-        if eq_sel:
-            sub = sub[sub["Equipo"].isin(eq_sel)]
-        if sub.empty:
-            st.warning(f"Sin resultados para {etiqueta} con esos filtros.")
-            st.stop()
-        opciones = (sub["Jugador"] + " — " + sub["Equipo"] + " (" + sub["Temporada"] + ")").tolist()
-        idx_map = dict(zip(opciones, sub.index))
-        sel = st.selectbox(f"Jugador — {etiqueta}", opciones,
-                            index=min(index_default, len(opciones) - 1), key=f"{key_prefix}_sel")
-        jugador_sel = sub.loc[idx_map[sel]]
-
+    def render_tarjeta_comp(jugador_sel):
         escudo_sel = buscar_imagen("escudos", jugador_sel["Equipo"])
         foto_sel = buscar_imagen("jugadores", jugador_sel["Jugador"])
         render_html(
@@ -734,13 +784,12 @@ with tab_comparador:
                  {img_html(escudo_sel, size=18, radius="3px")} {jugador_sel['Equipo']} ({jugador_sel['Temporada']})
                  </div></div></div>"""
         )
-        return jugador_sel
 
     c1, c2 = st.columns(2)
     with c1:
-        j1 = selector_jugador("Jugador 1", "j1", 0)
+        render_tarjeta_comp(j1)
     with c2:
-        j2 = selector_jugador("Jugador 2", "j2", 1)
+        render_tarjeta_comp(j2)
 
     misma_posicion = j1["grupo"] == j2["grupo"]
     if misma_posicion:
