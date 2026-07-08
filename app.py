@@ -580,10 +580,17 @@ with tab_ranking:
         height=640,
         row_height=44,
         column_config={
-            "Foto": st.column_config.ImageColumn("Foto", width="medium"),
-            "Escudo": st.column_config.ImageColumn("Escudo", width="medium"),
-            "Score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%.1f"),
-            "Percentil": st.column_config.ProgressColumn("Percentil (vs. su posición)", min_value=0, max_value=100, format="%.0f"),
+            "Foto": st.column_config.ImageColumn("Foto", width="small"),
+            "Jugador": st.column_config.TextColumn("Jugador", width=150),
+            "Escudo": st.column_config.ImageColumn("Escudo", width="small"),
+            "Equipo": st.column_config.TextColumn("Equipo", width=150),
+            "Edad": st.column_config.NumberColumn("Edad", width=55),
+            "Temporada": st.column_config.TextColumn("Temporada", width=85),
+            "Posición": st.column_config.TextColumn("Posición", width=95),
+            "Arquetipo": st.column_config.TextColumn("Arquetipo", width=130),
+            "Similitud": st.column_config.NumberColumn("Similitud", width=80),
+            "Score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%.1f", width=110),
+            "Percentil": st.column_config.ProgressColumn("Percentil (vs. su posición)", min_value=0, max_value=100, format="%.0f", width=145),
         },
     )
 
