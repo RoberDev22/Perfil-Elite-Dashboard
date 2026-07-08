@@ -395,61 +395,58 @@ tab_ranking, tab_ficha, tab_comparador, tab_validacion, tab_destacados, tab_fuer
 )
 
 # ---------------------------------------------------------------------------
-# Barra lateral — filtros del Ranking (persistente en toda la app; el Ranking
-# es la vista principal, así que sus filtros viven en la sidebar en vez de
-# ocupar espacio horizontal arriba de la tabla).
-# ---------------------------------------------------------------------------
-with st.sidebar:
-    render_html(
-        """<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;
-             font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.15rem;">
-             <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.5rem;
-             color:#1B4332; line-height:1;">tune</span>Filtros del Ranking</div>"""
-    )
-
-    render_label_icono("sports_soccer", "Posición")
-    grupos_sel = st.multiselect(" ", sorted(rfef["grupo"].unique()),
-                                 default=sorted(rfef["grupo"].unique()),
-                                 placeholder="Elige una o varias opciones", label_visibility="collapsed")
-
-    render_label_icono("auto_awesome", "Arquetipo")
-    arquetipos_disp = sorted(rfef[rfef["grupo"].isin(grupos_sel)]["arquetipo_proyectado"].unique()) if grupos_sel else []
-    arquetipos_sel = st.multiselect(" ", arquetipos_disp, default=arquetipos_disp,
-                                     placeholder="Elige una o varias opciones", label_visibility="collapsed")
-
-    render_label_icono("calendar_month", "Temporada")
-    temporadas_sel = st.multiselect(" ", sorted(rfef["Temporada"].unique()),
-                                     default=sorted(rfef["Temporada"].unique()),
-                                     placeholder="Elige una o varias opciones", label_visibility="collapsed")
-
-    render_label_icono("shield", "Equipo")
-    equipos_sel_rank = st.multiselect(" ", sorted(rfef["Equipo"].dropna().unique()),
-                                       default=[], placeholder="Todos los equipos", label_visibility="collapsed")
-
-    render_label_icono("public", "Nacionalidad")
-    paises_sel_rank = st.multiselect(" ", sorted(rfef["País de nacimiento"].dropna().unique()),
-                                      default=[], placeholder="Todas las nacionalidades", label_visibility="collapsed")
-
-    st.divider()
-
-    render_label_icono("speed", "Score mínimo")
-    score_min = st.slider(" ", 0, 100, 0, label_visibility="collapsed")
-
-    edad_min_data, edad_max_data = int(rfef["Edad"].min()), int(rfef["Edad"].max())
-    render_label_icono("cake", "Edad")
-    edad_rango = st.slider(" ", edad_min_data, edad_max_data,
-                            (edad_min_data, edad_max_data), label_visibility="collapsed")
-
-    min_min_data, min_max_data = int(rfef["Minutos jugados"].min()), int(rfef["Minutos jugados"].max())
-    render_label_icono("timer", "Minutos jugados (mínimo)")
-    minutos_min = st.slider(" ", min_min_data, min_max_data, min_min_data, label_visibility="collapsed")
-
-# ---------------------------------------------------------------------------
 # TAB 1 — Ranking
 # ---------------------------------------------------------------------------
 with tab_ranking:
     st.subheader("Ranking de jugadores de 1ª RFEF proyectados sobre el espacio de LaLiga")
-    st.caption("Los filtros están en la barra lateral izquierda.")
+
+    with st.container(border=True):
+        render_html(
+            """<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.9rem;
+                 font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.05rem;">
+                 <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.35rem;
+                 color:#1B4332; line-height:1;">tune</span>Filtros</div>"""
+        )
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            render_label_icono("sports_soccer", "Posición", col1)
+            grupos_sel = st.multiselect(" ", sorted(rfef["grupo"].unique()),
+                                         default=sorted(rfef["grupo"].unique()),
+                                         placeholder="Elige una o varias opciones", label_visibility="collapsed")
+        with col2:
+            render_label_icono("auto_awesome", "Arquetipo", col2)
+            arquetipos_disp = sorted(rfef[rfef["grupo"].isin(grupos_sel)]["arquetipo_proyectado"].unique()) if grupos_sel else []
+            arquetipos_sel = st.multiselect(" ", arquetipos_disp, default=arquetipos_disp,
+                                             placeholder="Elige una o varias opciones", label_visibility="collapsed")
+        with col3:
+            render_label_icono("calendar_month", "Temporada", col3)
+            temporadas_sel = st.multiselect(" ", sorted(rfef["Temporada"].unique()),
+                                             default=sorted(rfef["Temporada"].unique()),
+                                             placeholder="Elige una o varias opciones", label_visibility="collapsed")
+
+        col4, col5, col6 = st.columns(3)
+        with col4:
+            render_label_icono("shield", "Equipo", col4)
+            equipos_sel_rank = st.multiselect(" ", sorted(rfef["Equipo"].dropna().unique()),
+                                               default=[], placeholder="Todos los equipos", label_visibility="collapsed")
+        with col5:
+            render_label_icono("public", "Nacionalidad", col5)
+            paises_sel_rank = st.multiselect(" ", sorted(rfef["País de nacimiento"].dropna().unique()),
+                                              default=[], placeholder="Todas las nacionalidades", label_visibility="collapsed")
+        with col6:
+            min_min_data, min_max_data = int(rfef["Minutos jugados"].min()), int(rfef["Minutos jugados"].max())
+            render_label_icono("timer", "Minutos jugados (mín.)", col6)
+            minutos_min = st.slider(" ", min_min_data, min_max_data, min_min_data, label_visibility="collapsed")
+
+        col7, col8 = st.columns(2)
+        with col7:
+            render_label_icono("speed", "Score mínimo", col7)
+            score_min = st.slider(" ", 0, 100, 0, label_visibility="collapsed")
+        with col8:
+            edad_min_data, edad_max_data = int(rfef["Edad"].min()), int(rfef["Edad"].max())
+            render_label_icono("cake", "Edad", col8)
+            edad_rango = st.slider(" ", edad_min_data, edad_max_data,
+                                    (edad_min_data, edad_max_data), label_visibility="collapsed")
 
     filtro = (
         rfef["grupo"].isin(grupos_sel)
