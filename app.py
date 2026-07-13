@@ -447,10 +447,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-tab_ranking, tab_ficha, tab_comparador, tab_validacion, tab_destacados = st.tabs(
+tab_ranking, tab_ficha, tab_comparador, tab_validacion, tab_destacados, tab_trayectoria = st.tabs(
     [":material/leaderboard: Ranking", ":material/badge: Ficha de jugador",
      ":material/compare_arrows: Comparador", ":material/verified: Validación empírica",
-     ":material/star: Jugadores destacados"]
+     ":material/star: Jugadores destacados", ":material/timeline: Trayectoria"]
 )
 # Pestaña "Fuera de RFEF" (caso Lamine Yamal) retirada temporalmente: el
 # laliga_arquetipos_fase_a.csv del pipeline v1.3 ya no trae las columnas
@@ -1081,3 +1081,79 @@ with tab_destacados:
                                     f"temporada, así que también refleja cambios en el nivel general del grupo, no solo en el jugador.")
 
                 st.caption(explicacion)
+
+# ---------------------------------------------------------------------------
+# TAB 6 — Trayectoria (estilo Transfermarkt)
+# ---------------------------------------------------------------------------
+with tab_trayectoria:
+    st.subheader("Trayectoria del jugador")
+    st.caption(
+        "Recorrido cronológico por club y temporada, con el arquetipo y el score que le asignó el "
+        "modelo en cada una. Incluye todos los clubes presentes en el dataset (también los de fuera "
+        "de 1ª RFEF), útil para ver el camino completo de un jugador, incluida su etapa posterior a "
+        "la RFEF."
+    )
+
+    jugadores_trayectoria = sorted(rfef["Jugador"].dropna().unique())
+    jugador_tray_sel = st.selectbox(
+        "Selecciona un jugador", jugadores_trayectoria,
+        index=jugadores_trayectoria.index("Fer López") if "Fer López" in jugadores_trayectoria else 0,
+        key="trayectoria_sel",
+    )
+
+    historial_tray = rfef[rfef["Jugador"] == jugador_tray_sel].sort_values("Temporada").reset_index(drop=True)
+
+    if historial_tray.empty:
+        st.info("Sin datos de trayectoria para este jugador.")
+    else:
+        foto_tray = buscar_imagen("jugadores", jugador_tray_sel)
+        render_html(
+            f"""<div style="display:flex; align-items:center; gap:0.9rem; margin:0.3rem 0 1.1rem 0;">
+                 {img_html(foto_tray, size=64, radius="50%", border="#E4E1D8", con_silueta=True)}
+                 <div>
+                 <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.4rem;">
+                 {jugador_tray_sel}</div>
+                 <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.85rem;">
+                 {len(historial_tray)} temporada(s) registrada(s) en el dataset</div>
+                 </div></div>"""
+        )
+
+        filas_timeline = []
+        for _, fila_t in historial_tray.iterrows():
+            color_t = GRUPO_COLOR.get(fila_t.get("grupo"), "#2E9E5B")
+            escudo_t = buscar_imagen("escudos", fila_t["Equipo"])
+            score_txt = f"{fila_t['score_final']:.1f} pts" if pd.notna(fila_t.get("score_final")) else "—"
+            arquetipo_txt = fila_t.get("arquetipo_proyectado", "—")
+            filas_timeline.append(f"""
+                <div style="display:flex; gap:1rem; align-items:flex-start; position:relative; padding-bottom:1.6rem;">
+                    <div style="display:flex; flex-direction:column; align-items:center; width:14px;">
+                        <div style="width:14px; height:14px; border-radius:50%; background:{color_t};
+                             border:2px solid #FFFFFF; box-shadow:0 0 0 2px {color_t}; margin-top:0.35rem; flex-shrink:0;"></div>
+                        <div style="width:2px; flex:1; background:#E4E1D8; margin-top:0.2rem;"></div>
+                    </div>
+                    <div style="flex:1; background:#FFFFFF; border:1px solid #E4E1D8; border-left:4px solid {color_t};
+                         border-radius:10px; padding:0.7rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+                        <div style="display:flex; align-items:center; gap:0.6rem;">
+                            {img_html(escudo_t, size=32, radius="4px")}
+                            <div>
+                                <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1rem;">
+                                {fila_t['Equipo']}</div>
+                                <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.8rem;">
+                                {fila_t['Temporada']} · {arquetipo_txt}</div>
+                            </div>
+                        </div>
+                        <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color_t}; font-size:1.05rem;
+                             white-space:nowrap;">{score_txt}</div>
+                    </div>
+                </div>""")
+        # el último punto de la línea no necesita continuar hacia abajo
+        filas_timeline[-1] = filas_timeline[-1].replace(
+            'background:#E4E1D8; margin-top:0.2rem;', 'background:transparent; margin-top:0.2rem;'
+        )
+        render_html("<div>" + "".join(filas_timeline) + "</div>")
+
+        tabla_tray = historial_tray[["Temporada", "Equipo", "grupo", "arquetipo_proyectado", "score_final"]].rename(
+            columns={"grupo": "Posición", "arquetipo_proyectado": "Arquetipo", "score_final": "Score"}
+        ).round({"Score": 1})
+        with st.expander("Ver como tabla"):
+            st.dataframe(tabla_tray, hide_index=True, width='stretch')
