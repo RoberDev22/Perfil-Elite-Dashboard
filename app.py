@@ -565,6 +565,11 @@ with tab_ranking:
     tabla = rfef[filtro].sort_values("score_final", ascending=False)
 
     st.write(f"**{len(tabla)}** jugadores cumplen los filtros.")
+    st.caption(
+        "ℹ️ La columna \"Equipo\" refleja el club actual del jugador registrado en Wyscout en el "
+        "momento de exportación de los datos, que puede no coincidir con su club durante la "
+        "temporada de 1ª RFEF analizada (ver nota metodológica del TFM, sección 19.1)."
+    )
 
     tabla_display = tabla[["Jugador", "Equipo", "Edad", "Temporada", "grupo", "arquetipo_proyectado",
                             "similitud_coseno", "score_final", "percentil_score"]].copy()
