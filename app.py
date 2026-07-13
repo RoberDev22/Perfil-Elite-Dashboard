@@ -74,7 +74,7 @@ def img_html(ruta, size=48, radius="50%", border=None, con_silueta=False):
     Si con_silueta=True y no hay ruta, devuelve un icono neutro de 'sin foto' en vez de nada."""
     if ruta is None:
         return silueta_svg(size) if con_silueta else ""
-    src = ruta if str(ruta).startswith("http") else imagen_a_data_uri(ruta)
+    src = ruta if str(ruta).startswith(("http", "data:")) else imagen_a_data_uri(ruta)
     borde = f"border:2px solid {border};" if border else ""
     return (f'<img src="{src}" style="width:{size}px; height:{size}px; object-fit:cover; '
             f'border-radius:{radius}; {borde}" referrerpolicy="no-referrer" loading="lazy">')
