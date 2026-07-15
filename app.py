@@ -349,6 +349,18 @@ def cargar_datos():
     rfef = pd.read_csv(buscar("rfef_final_con_shap.csv"))
     laliga = pd.read_csv(buscar("laliga_arquetipos_fase_a.csv"))
     destacados_extra = pd.read_csv(buscar("destacados_perfil_extra.csv"))
+
+    # Mapeo Equipo -> Liga (construido aparte, ver data/equipo_liga.csv): el
+    # pipeline v1.3 no incluye la liga de cada equipo, y con el campo Equipo
+    # ahora mezclando 1ª RFEF, LaLiga y clubes extranjeros hace falta esta
+    # info para poder filtrar por competición en el Ranking.
+    try:
+        equipo_liga = pd.read_csv(buscar("equipo_liga.csv"))
+        rfef = rfef.merge(equipo_liga, on="Equipo", how="left")
+        rfef["Liga"] = rfef["Liga"].fillna("Desconocida")
+    except FileNotFoundError:
+        rfef["Liga"] = "Desconocida"
+
     return rfef, laliga, destacados_extra
 
 
@@ -437,20 +449,24 @@ with tab_ranking:
                                              default=sorted(rfef["Temporada"].unique()),
                                              placeholder="Elige una o varias opciones", label_visibility="collapsed")
         with c4:
+            render_label_icono("public", "Liga")
+            ligas_sel = st.multiselect(" ", sorted(rfef["Liga"].dropna().unique()),
+                                        default=[], placeholder="Todas las ligas", label_visibility="collapsed")
+
+        c5, c6, c7, c8 = st.columns(4)
+        with c5:
             render_label_icono("shield", "Equipo")
             equipos_sel_rank = st.multiselect(" ", sorted(rfef["Equipo"].dropna().unique()),
                                                default=[], placeholder="Todos los equipos", label_visibility="collapsed")
-
-        c5, c6, c7 = st.columns(3)
-        with c5:
+        with c6:
             render_label_icono("speed", "Score mínimo")
             score_min = st.slider(" ", 0, 100, 0, label_visibility="collapsed")
-        with c6:
+        with c7:
             edad_min_data, edad_max_data = int(rfef["Edad"].min()), int(rfef["Edad"].max())
             render_label_icono("cake", "Edad")
             edad_rango = st.slider(" ", edad_min_data, edad_max_data,
                                     (edad_min_data, edad_max_data), label_visibility="collapsed")
-        with c7:
+        with c8:
             min_min_data, min_max_data = int(rfef["Minutos jugados"].min()), int(rfef["Minutos jugados"].max())
             render_label_icono("timer", "Minutos jugados (mínimo)")
             minutos_min = st.slider(" ", min_min_data, min_max_data, min_min_data, label_visibility="collapsed")
@@ -465,6 +481,8 @@ with tab_ranking:
     )
     if equipos_sel_rank:
         filtro &= rfef["Equipo"].isin(equipos_sel_rank)
+    if ligas_sel:
+        filtro &= rfef["Liga"].isin(ligas_sel)
     if jugadores_buscados:
         filtro &= rfef["Jugador"].isin(jugadores_buscados)
     tabla = rfef[filtro].sort_values("score_final", ascending=False)
