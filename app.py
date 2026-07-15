@@ -1215,22 +1215,55 @@ with tab_trayectoria:
 
         with col_side:
             with st.container(border=True):
-                st.markdown("##### Evolución del score")
-                fig_evo_tray = go.Figure()
-                fig_evo_tray.add_trace(go.Scatter(
-                    x=historial_tray["Temporada"], y=historial_tray["score_final"],
-                    mode="lines+markers", line=dict(color=color_cab, width=3),
-                    marker=dict(size=10, color=color_cab, line=dict(width=2, color="#FFFFFF")),
-                    hovertemplate="%{x}<br>Score: %{y:.1f}<extra></extra>",
-                ))
-                fig_evo_tray.update_layout(
-                    height=220, margin=dict(l=10, r=10, t=10, b=10), showlegend=False,
-                    font=dict(family="Inter, sans-serif", color="#14213D", size=11),
-                    paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
-                    yaxis=dict(gridcolor="#EDEBE4", range=[0, 100]),
-                    xaxis=dict(gridcolor="#EDEBE4"),
-                )
-                st.plotly_chart(fig_evo_tray, width='stretch')
+                if len(historial_tray) > 1:
+                    st.markdown("##### Evolución del score")
+                    fig_evo_tray = go.Figure()
+                    fig_evo_tray.add_trace(go.Scatter(
+                        x=historial_tray["Temporada"], y=historial_tray["score_final"],
+                        mode="lines+markers", line=dict(color=color_cab, width=3),
+                        marker=dict(size=10, color=color_cab, line=dict(width=2, color="#FFFFFF")),
+                        hovertemplate="%{x}<br>Score: %{y:.1f}<extra></extra>",
+                    ))
+                    fig_evo_tray.update_layout(
+                        height=220, margin=dict(l=10, r=10, t=10, b=10), showlegend=False,
+                        font=dict(family="Inter, sans-serif", color="#14213D", size=11),
+                        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+                        yaxis=dict(gridcolor="#EDEBE4", range=[0, 100]),
+                        xaxis=dict(gridcolor="#EDEBE4"),
+                    )
+                    st.plotly_chart(fig_evo_tray, width='stretch')
+                else:
+                    # Con una sola temporada registrada, un gráfico de "evolución" de un
+                    # único punto no aporta nada (y visualmente parece vacío). En su lugar,
+                    # se muestra dónde queda ese score dentro de la distribución de su
+                    # posición, igual que en la Ficha de jugador.
+                    st.markdown("##### Su score frente al resto de su posición")
+                    st.caption("Solo hay una temporada registrada para este jugador, así que no hay "
+                               "evolución que mostrar — en su lugar, así de bien puntuó frente al resto.")
+                    grupo_unico = historial_tray.iloc[0]["grupo"]
+                    if grupo_unico in stats_score:
+                        fig_dist_tray = go.Figure()
+                        fig_dist_tray.add_trace(go.Histogram(
+                            x=stats_score[grupo_unico]["valores"], nbinsx=30,
+                            marker_color="#D8D4C8", opacity=0.9,
+                        ))
+                        fig_dist_tray.add_vline(
+                            x=historial_tray.iloc[0]["score_final"], line_width=3, line_color=color_cab,
+                            annotation_text=jugador_tray_sel, annotation_position="top",
+                            annotation_font=dict(family="Space Grotesk, sans-serif", color="#14213D", size=11),
+                        )
+                        fig_dist_tray.add_vline(
+                            x=stats_score[grupo_unico]["media"], line_width=1, line_dash="dot", line_color="#6B7280",
+                            annotation_text="media", annotation_font=dict(size=9, color="#6B7280"),
+                        )
+                        fig_dist_tray.update_layout(
+                            height=220, margin=dict(l=10, r=10, t=30, b=10), showlegend=False,
+                            xaxis_title=f"Distribución de scores — {grupo_unico}s (1ª RFEF)",
+                            yaxis_visible=False,
+                            font=dict(family="Inter, sans-serif", color="#14213D", size=10),
+                            paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+                        )
+                        st.plotly_chart(fig_dist_tray, width='stretch')
 
             if mejor_fila is not None and pd.notna(mejor_fila.get("shap_top_factores")):
                 with st.container(border=True):
