@@ -635,18 +635,24 @@ with tab_ranking:
     with st.container(border=True):
         st.markdown("#### Top 10 según los filtros actuales")
         top10 = tabla.head(10).sort_values("score_final")
-        etiquetas_top10 = (top10["Jugador"] + " (" + top10["Equipo"] + " · " + top10["Temporada"] + ")")
-        fig_bar = go.Figure(go.Bar(
-            x=top10["score_final"], y=etiquetas_top10,
-            orientation="h",
-            marker_color=[GRUPO_COLOR.get(g, "#2E9E5B") for g in top10["grupo"]],
-            text=top10["score_final"].round(1), textposition="outside",
-        ))
+        top10 = top10.assign(_etiqueta=top10["Jugador"] + " (" + top10["Equipo"] + " · " + top10["Temporada"] + ")")
+        fig_bar = go.Figure()
+        for grupo_s in sorted(top10["grupo"].unique()):
+            sub = top10[top10["grupo"] == grupo_s]
+            fig_bar.add_trace(go.Bar(
+                x=sub["score_final"], y=sub["_etiqueta"], orientation="h", name=grupo_s,
+                marker_color=GRUPO_COLOR.get(grupo_s, "#2E9E5B"),
+                text=sub["score_final"].round(1), textposition="outside",
+            ))
         fig_bar.update_layout(
             height=420, margin=dict(l=10, r=30, t=10, b=40),
             xaxis_title="Score final",
             font=dict(family="Inter, sans-serif", color="#14213D"),
             paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+            legend=dict(title="Posición", font=dict(family="Space Grotesk, sans-serif", size=13)),
+            # el orden de los jugadores en el eje Y lo fija el orden de las filas (ya viene
+            # ordenado por score ascendente), no el orden en que se anaden las trazas por grupo
+            yaxis=dict(categoryorder="array", categoryarray=top10["_etiqueta"].tolist()),
         )
         fig_bar.update_xaxes(gridcolor="#EDEBE4")
         st.plotly_chart(fig_bar, width='stretch')
