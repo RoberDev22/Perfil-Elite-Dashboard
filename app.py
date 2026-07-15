@@ -1078,49 +1078,75 @@ with tab_trayectoria:
     if historial_tray.empty:
         st.info("Sin datos de trayectoria para este jugador.")
     else:
+        grupo_predominante = historial_tray["grupo"].mode().iloc[0] if not historial_tray["grupo"].mode().empty else None
+        color_cab = GRUPO_COLOR.get(grupo_predominante, "#2E9E5B")
+        color_cab_light = GRUPO_COLOR_LIGHT.get(grupo_predominante, "#EAF6EF")
+        idx_mejor = historial_tray["score_final"].idxmax() if historial_tray["score_final"].notna().any() else None
+
         foto_tray = buscar_imagen("jugadores", jugador_tray_sel)
         render_html(
-            f"""<div style="display:flex; align-items:center; gap:0.9rem; margin:0.3rem 0 1.1rem 0;">
-                 {img_html(foto_tray, size=64, radius="50%", border="#E4E1D8", con_silueta=True)}
+            f"""<div style="display:flex; align-items:center; gap:1.1rem; margin:0.3rem 0 1.6rem 0;
+                 background:linear-gradient(135deg, {color_cab_light} 0%, #FFFFFF 65%);
+                 border:1px solid {color_cab}; border-left:5px solid {color_cab};
+                 border-radius:12px; padding:1.1rem 1.4rem;">
+                 {img_html(foto_tray, size=72, radius="50%", border="#FFFFFF", con_silueta=True)}
                  <div>
-                 <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.4rem;">
-                 {jugador_tray_sel}</div>
-                 <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.85rem;">
-                 {len(historial_tray)} temporada(s) registrada(s) en el dataset</div>
+                 <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.6rem;
+                      line-height:1.2;">{jugador_tray_sel}</div>
+                 <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.9rem; margin-top:0.25rem;">
+                 {len(historial_tray)} temporada(s) registrada(s) en el dataset · {historial_tray['Temporada'].iloc[0]} — {historial_tray['Temporada'].iloc[-1]}</div>
                  </div></div>"""
         )
 
         filas_timeline = []
-        for _, fila_t in historial_tray.iterrows():
+        for idx_t, fila_t in historial_tray.iterrows():
             color_t = GRUPO_COLOR.get(fila_t.get("grupo"), "#2E9E5B")
+            color_t_light = GRUPO_COLOR_LIGHT.get(fila_t.get("grupo"), "#EAF6EF")
             escudo_t = buscar_imagen("escudos", fila_t["Equipo"])
-            score_txt = f"{fila_t['score_final']:.1f} pts" if pd.notna(fila_t.get("score_final")) else "—"
+            score_txt = f"{fila_t['score_final']:.1f}" if pd.notna(fila_t.get("score_final")) else "—"
             arquetipo_txt = fila_t.get("arquetipo_proyectado", "—")
+            es_mejor = idx_t == idx_mejor
+            fondo_tarjeta = color_t_light if es_mejor else "#FFFFFF"
+            grosor_borde = "2px" if es_mejor else "1px"
+            insignia_mejor = (
+                f"""<span style="background:{color_t}; color:#FFFFFF; font-family:'Space Grotesk', sans-serif;
+                     font-weight:700; font-size:0.68rem; letter-spacing:0.03em; text-transform:uppercase;
+                     padding:0.18rem 0.55rem; border-radius:20px; margin-left:0.55rem;">★ Mejor temporada</span>"""
+                if es_mejor else ""
+            )
             filas_timeline.append(f"""
-                <div style="display:flex; gap:1rem; align-items:flex-start; position:relative; padding-bottom:1.6rem;">
-                    <div style="display:flex; flex-direction:column; align-items:center; width:14px;">
-                        <div style="width:14px; height:14px; border-radius:50%; background:{color_t};
-                             border:2px solid #FFFFFF; box-shadow:0 0 0 2px {color_t}; margin-top:0.35rem; flex-shrink:0;"></div>
-                        <div style="width:2px; flex:1; background:#E4E1D8; margin-top:0.2rem;"></div>
+                <div style="display:flex; gap:1.1rem; align-items:stretch; position:relative; padding-bottom:1.9rem;">
+                    <div style="display:flex; flex-direction:column; align-items:center; width:16px; flex-shrink:0;">
+                        <div style="width:16px; height:16px; border-radius:50%; background:{color_t};
+                             border:3px solid #FFFFFF; box-shadow:0 0 0 2px {color_t}; margin-top:0.6rem; flex-shrink:0;"></div>
+                        <div style="width:2px; flex:1; background:#E4E1D8; margin-top:0.3rem;"></div>
                     </div>
-                    <div style="flex:1; background:#FFFFFF; border:1px solid #E4E1D8; border-left:4px solid {color_t};
-                         border-radius:10px; padding:0.7rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
-                        <div style="display:flex; align-items:center; gap:0.6rem;">
-                            {img_html(escudo_t, size=32, radius="4px")}
+                    <div class="pe-hover-card" style="flex:1; background:{fondo_tarjeta}; border:{grosor_borde} solid {color_t};
+                         border-left:5px solid {color_t}; border-radius:12px; padding:0.95rem 1.3rem;
+                         display:flex; align-items:center; justify-content:space-between; gap:1.2rem;">
+                        <div style="display:flex; align-items:center; gap:0.8rem;">
+                            {img_html(escudo_t, size=38, radius="6px")}
                             <div>
-                                <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1rem;">
-                                {fila_t['Equipo']}</div>
-                                <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.8rem;">
-                                {fila_t['Temporada']} · {arquetipo_txt}</div>
+                                <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.08rem;
+                                     line-height:1.3;">{fila_t['Equipo']}{insignia_mejor}</div>
+                                <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.82rem; margin-top:0.15rem;
+                                     display:flex; align-items:center; gap:0.4rem;">
+                                <span style="font-family:'JetBrains Mono', monospace; color:#14213D; font-weight:600;">{fila_t['Temporada']}</span>
+                                <span>·</span><span>{arquetipo_txt}</span>
+                                </div>
                             </div>
                         </div>
-                        <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color_t}; font-size:1.05rem;
-                             white-space:nowrap;">{score_txt}</div>
+                        <div style="text-align:right; flex-shrink:0;">
+                            <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color_t}; font-size:1.5rem;
+                                 line-height:1;">{score_txt}</div>
+                            <div style="font-family:'Inter', sans-serif; color:#9AA0A6; font-size:0.68rem; text-transform:uppercase;
+                                 letter-spacing:0.04em; margin-top:0.15rem;">Score</div>
+                        </div>
                     </div>
                 </div>""")
         # el último punto de la línea no necesita continuar hacia abajo
         filas_timeline[-1] = filas_timeline[-1].replace(
-            'background:#E4E1D8; margin-top:0.2rem;', 'background:transparent; margin-top:0.2rem;'
+            'background:#E4E1D8; margin-top:0.3rem;', 'background:transparent; margin-top:0.3rem;'
         )
         render_html("<div>" + "".join(filas_timeline) + "</div>")
 
