@@ -413,6 +413,19 @@ def cargar_datos():
 
 rfef, laliga, destacados_extra = cargar_datos()
 
+# Deduplicacion: cuando un jugador tiene varias filas para el mismo equipo
+# (varias temporadas registradas ahi), nos quedamos solo con la de mejor
+# score_final. Esto es necesario porque, con el pipeline v1.3, "Equipo" y
+# "Edad" reflejan el club/edad actuales del jugador en el momento de
+# exportacion (ver nota metodologica, seccion 19.1 del TFM) y no cambian
+# entre temporadas dentro del mismo club, por lo que varias filas del mismo
+# jugador+equipo son en la practica redundantes para el resto de la app.
+rfef = (
+    rfef.sort_values("score_final", ascending=False)
+    .drop_duplicates(subset=["Jugador", "Equipo"], keep="first")
+    .sort_index()
+)
+
 # percentiles dentro de cada grupo (para el radar), calculados una vez
 percentiles = {}
 stats_score = {}
