@@ -432,6 +432,11 @@ with tab_ranking:
             label_visibility="collapsed",
         )
 
+        st.markdown(
+            "<div style='font-family:Inter, sans-serif; font-weight:600; color:#6B7280; "
+            "font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em; margin:0.7rem 0 0.4rem 0;'>"
+            "Clasificación y club</div>", unsafe_allow_html=True,
+        )
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             render_label_icono("sports_soccer", "Posición")
@@ -444,20 +449,25 @@ with tab_ranking:
             arquetipos_sel = st.multiselect(" ", arquetipos_disp, default=arquetipos_disp,
                                              placeholder="Elige una o varias opciones", label_visibility="collapsed")
         with c3:
-            render_label_icono("calendar_month", "Temporada")
-            temporadas_sel = st.multiselect(" ", sorted(rfef["Temporada"].unique()),
-                                             default=sorted(rfef["Temporada"].unique()),
-                                             placeholder="Elige una o varias opciones", label_visibility="collapsed")
+            render_label_icono("shield", "Equipo")
+            equipos_sel_rank = st.multiselect(" ", sorted(rfef["Equipo"].dropna().unique()),
+                                               default=[], placeholder="Todos los equipos", label_visibility="collapsed")
         with c4:
             render_label_icono("public", "Liga")
             ligas_sel = st.multiselect(" ", sorted(rfef["Liga"].dropna().unique()),
                                         default=[], placeholder="Todas las ligas", label_visibility="collapsed")
 
+        st.markdown(
+            "<div style='font-family:Inter, sans-serif; font-weight:600; color:#6B7280; "
+            "font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em; margin:0.9rem 0 0.4rem 0;'>"
+            "Temporada y rendimiento</div>", unsafe_allow_html=True,
+        )
         c5, c6, c7, c8 = st.columns(4)
         with c5:
-            render_label_icono("shield", "Equipo")
-            equipos_sel_rank = st.multiselect(" ", sorted(rfef["Equipo"].dropna().unique()),
-                                               default=[], placeholder="Todos los equipos", label_visibility="collapsed")
+            render_label_icono("calendar_month", "Temporada")
+            temporadas_sel = st.multiselect(" ", sorted(rfef["Temporada"].unique()),
+                                             default=sorted(rfef["Temporada"].unique()),
+                                             placeholder="Elige una o varias opciones", label_visibility="collapsed")
         with c6:
             render_label_icono("speed", "Score mínimo")
             score_min = st.slider(" ", 0, 100, 0, label_visibility="collapsed")
