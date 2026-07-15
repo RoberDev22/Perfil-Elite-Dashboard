@@ -1060,18 +1060,61 @@ with tab_destacados:
 with tab_trayectoria:
     st.subheader("Trayectoria del jugador")
     st.caption(
-        "Recorrido cronológico por club y temporada, con el arquetipo y el score que le asignó el "
-        "modelo en cada una. Incluye todos los clubes presentes en el dataset (también los de fuera "
-        "de 1ª RFEF), útil para ver el camino completo de un jugador, incluida su etapa posterior a "
-        "la RFEF."
+        "Recorrido cronológico por club y temporada, con el arquetipo, la liga y el score que le "
+        "asignó el modelo en cada una. Incluye todos los clubes presentes en el dataset (también los "
+        "de fuera de 1ª RFEF), útil para ver el camino completo de un jugador, incluida su etapa "
+        "posterior a la RFEF."
     )
 
-    jugadores_trayectoria = sorted(rfef["Jugador"].dropna().unique())
-    jugador_tray_sel = st.selectbox(
-        "Selecciona un jugador", jugadores_trayectoria,
-        index=jugadores_trayectoria.index("Fer López") if "Fer López" in jugadores_trayectoria else 0,
-        key="trayectoria_sel",
-    )
+    def _color_liga(liga):
+        liga = str(liga or "")
+        if "1ª RFEF" in liga or "Primera Federación" in liga:
+            return "#1B4332"
+        if liga == "LaLiga (España)":
+            return "#B8860B"
+        if "2ª RFEF" in liga or "Segunda Federación" in liga or "Tercera Federación" in liga or "LaLiga 2" in liga:
+            return "#6B7280"
+        if "juvenil" in liga.lower():
+            return "#9AA0A6"
+        if liga == "Desconocida":
+            return "#C9C4B4"
+        return "#2563EB"  # ligas extranjeras
+
+    with st.container(border=True):
+        render_html(
+            """<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.9rem;
+                 font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.05rem;">
+                 <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.3rem;
+                 color:#1B4332; line-height:1;">tune</span>Encuentra un jugador</div>"""
+        )
+        cf1, cf2, cf3, cf4 = st.columns(4)
+        with cf1:
+            render_label_icono("sports_soccer", "Posición")
+            pos_tray_sel = st.multiselect(" ", sorted(rfef["grupo"].dropna().unique()), default=[],
+                                           placeholder="Todas", label_visibility="collapsed", key="tray_pos")
+        with cf2:
+            render_label_icono("public", "Liga")
+            liga_tray_sel = st.multiselect(" ", sorted(rfef["Liga"].dropna().unique()), default=[],
+                                            placeholder="Todas", label_visibility="collapsed", key="tray_liga")
+        with cf3:
+            render_label_icono("shield", "Equipo")
+            equipo_tray_sel = st.multiselect(" ", sorted(rfef["Equipo"].dropna().unique()), default=[],
+                                              placeholder="Todos", label_visibility="collapsed", key="tray_equipo")
+        with cf4:
+            render_label_icono("search", "Jugador")
+            candidatos_tray = rfef.copy()
+            if pos_tray_sel:
+                candidatos_tray = candidatos_tray[candidatos_tray["grupo"].isin(pos_tray_sel)]
+            if liga_tray_sel:
+                candidatos_tray = candidatos_tray[candidatos_tray["Liga"].isin(liga_tray_sel)]
+            if equipo_tray_sel:
+                candidatos_tray = candidatos_tray[candidatos_tray["Equipo"].isin(equipo_tray_sel)]
+            jugadores_trayectoria = sorted(candidatos_tray["Jugador"].dropna().unique())
+            if not jugadores_trayectoria:
+                jugadores_trayectoria = sorted(rfef["Jugador"].dropna().unique())
+            idx_default = jugadores_trayectoria.index("Fer López") if "Fer López" in jugadores_trayectoria else 0
+            jugador_tray_sel = st.selectbox(" ", jugadores_trayectoria, index=idx_default,
+                                             label_visibility="collapsed", key="trayectoria_sel")
 
     historial_tray = rfef[rfef["Jugador"] == jugador_tray_sel].sort_values("Temporada").reset_index(drop=True)
 
@@ -1082,10 +1125,14 @@ with tab_trayectoria:
         color_cab = GRUPO_COLOR.get(grupo_predominante, "#2E9E5B")
         color_cab_light = GRUPO_COLOR_LIGHT.get(grupo_predominante, "#EAF6EF")
         idx_mejor = historial_tray["score_final"].idxmax() if historial_tray["score_final"].notna().any() else None
+        mejor_fila = historial_tray.loc[idx_mejor] if idx_mejor is not None else None
+        arquetipo_predom = historial_tray["arquetipo_proyectado"].mode().iloc[0] if not historial_tray["arquetipo_proyectado"].mode().empty else "—"
+        clubes_distintos = historial_tray["Equipo"].nunique()
+        ligas_distintas = historial_tray["Liga"].nunique() if "Liga" in historial_tray.columns else 0
 
         foto_tray = buscar_imagen("jugadores", jugador_tray_sel)
         render_html(
-            f"""<div style="display:flex; align-items:center; gap:1.1rem; margin:0.3rem 0 1.6rem 0;
+            f"""<div style="display:flex; align-items:center; gap:1.1rem; margin:0.3rem 0 1.1rem 0;
                  background:linear-gradient(135deg, {color_cab_light} 0%, #FFFFFF 65%);
                  border:1px solid {color_cab}; border-left:5px solid {color_cab};
                  border-radius:12px; padding:1.1rem 1.4rem;">
@@ -1094,63 +1141,117 @@ with tab_trayectoria:
                  <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.6rem;
                       line-height:1.2;">{jugador_tray_sel}</div>
                  <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.9rem; margin-top:0.25rem;">
-                 {len(historial_tray)} temporada(s) registrada(s) en el dataset · {historial_tray['Temporada'].iloc[0]} — {historial_tray['Temporada'].iloc[-1]}</div>
+                 {historial_tray['Temporada'].iloc[0]} — {historial_tray['Temporada'].iloc[-1]}</div>
                  </div></div>"""
         )
 
-        filas_timeline = []
-        for idx_t, fila_t in historial_tray.iterrows():
-            color_t = GRUPO_COLOR.get(fila_t.get("grupo"), "#2E9E5B")
-            color_t_light = GRUPO_COLOR_LIGHT.get(fila_t.get("grupo"), "#EAF6EF")
-            escudo_t = buscar_imagen("escudos", fila_t["Equipo"])
-            score_txt = f"{fila_t['score_final']:.1f}" if pd.notna(fila_t.get("score_final")) else "—"
-            arquetipo_txt = fila_t.get("arquetipo_proyectado", "—")
-            es_mejor = idx_t == idx_mejor
-            fondo_tarjeta = color_t_light if es_mejor else "#FFFFFF"
-            grosor_borde = "2px" if es_mejor else "1px"
-            insignia_mejor = (
-                f"""<span style="background:{color_t}; color:#FFFFFF; font-family:'Space Grotesk', sans-serif;
-                     font-weight:700; font-size:0.68rem; letter-spacing:0.03em; text-transform:uppercase;
-                     padding:0.18rem 0.55rem; border-radius:20px; margin-left:0.55rem;">★ Mejor temporada</span>"""
-                if es_mejor else ""
-            )
-            filas_timeline.append(f"""
-                <div style="display:flex; gap:1.1rem; align-items:stretch; position:relative; padding-bottom:1.9rem;">
-                    <div style="display:flex; flex-direction:column; align-items:center; width:16px; flex-shrink:0;">
-                        <div style="width:16px; height:16px; border-radius:50%; background:{color_t};
-                             border:3px solid #FFFFFF; box-shadow:0 0 0 2px {color_t}; margin-top:0.6rem; flex-shrink:0;"></div>
-                        <div style="width:2px; flex:1; background:#E4E1D8; margin-top:0.3rem;"></div>
-                    </div>
-                    <div class="pe-hover-card" style="flex:1; background:{fondo_tarjeta}; border:{grosor_borde} solid {color_t};
-                         border-left:5px solid {color_t}; border-radius:12px; padding:0.95rem 1.3rem;
-                         display:flex; align-items:center; justify-content:space-between; gap:1.2rem;">
-                        <div style="display:flex; align-items:center; gap:0.8rem;">
-                            {img_html(escudo_t, size=38, radius="6px")}
-                            <div>
-                                <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.08rem;
-                                     line-height:1.3;">{fila_t['Equipo']}{insignia_mejor}</div>
-                                <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.82rem; margin-top:0.15rem;
-                                     display:flex; align-items:center; gap:0.4rem;">
-                                <span style="font-family:'JetBrains Mono', monospace; color:#14213D; font-weight:600;">{fila_t['Temporada']}</span>
-                                <span>·</span><span>{arquetipo_txt}</span>
+        m1, m2, m3, m4, m5 = st.columns(5)
+        m1.metric("Temporadas", len(historial_tray))
+        m2.metric("Mejor score", f"{mejor_fila['score_final']:.1f}" if mejor_fila is not None else "—",
+                   help=f"{mejor_fila['Equipo']} · {mejor_fila['Temporada']}" if mejor_fila is not None else None)
+        m3.metric("Clubes distintos", clubes_distintos)
+        m4.metric("Ligas distintas", ligas_distintas)
+        m5.metric("Arquetipo predominante", arquetipo_predom)
+
+        col_time, col_side = st.columns([1.6, 1])
+
+        with col_time:
+            filas_timeline = []
+            for idx_t, fila_t in historial_tray.iterrows():
+                color_t = GRUPO_COLOR.get(fila_t.get("grupo"), "#2E9E5B")
+                color_t_light = GRUPO_COLOR_LIGHT.get(fila_t.get("grupo"), "#EAF6EF")
+                escudo_t = buscar_imagen("escudos", fila_t["Equipo"])
+                score_txt = f"{fila_t['score_final']:.1f}" if pd.notna(fila_t.get("score_final")) else "—"
+                arquetipo_txt = fila_t.get("arquetipo_proyectado", "—")
+                liga_txt = fila_t.get("Liga", "Desconocida")
+                color_liga_t = _color_liga(liga_txt)
+                es_mejor = idx_t == idx_mejor
+                fondo_tarjeta = color_t_light if es_mejor else "#FFFFFF"
+                grosor_borde = "2px" if es_mejor else "1px"
+                insignia_mejor = (
+                    f"""<span style="background:{color_t}; color:#FFFFFF; font-family:'Space Grotesk', sans-serif;
+                         font-weight:700; font-size:0.68rem; letter-spacing:0.03em; text-transform:uppercase;
+                         padding:0.18rem 0.55rem; border-radius:20px; margin-left:0.55rem;">★ Mejor temporada</span>"""
+                    if es_mejor else ""
+                )
+                filas_timeline.append(f"""
+                    <div style="display:flex; gap:1.1rem; align-items:stretch; position:relative; padding-bottom:1.9rem;">
+                        <div style="display:flex; flex-direction:column; align-items:center; width:16px; flex-shrink:0;">
+                            <div style="width:16px; height:16px; border-radius:50%; background:{color_t};
+                                 border:3px solid #FFFFFF; box-shadow:0 0 0 2px {color_t}; margin-top:0.6rem; flex-shrink:0;"></div>
+                            <div style="width:2px; flex:1; background:#E4E1D8; margin-top:0.3rem;"></div>
+                        </div>
+                        <div class="pe-hover-card" style="flex:1; background:{fondo_tarjeta}; border:{grosor_borde} solid {color_t};
+                             border-left:5px solid {color_t}; border-radius:12px; padding:0.95rem 1.3rem;
+                             display:flex; align-items:center; justify-content:space-between; gap:1.2rem;">
+                            <div style="display:flex; align-items:center; gap:0.8rem;">
+                                {img_html(escudo_t, size=38, radius="6px")}
+                                <div>
+                                    <div style="font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.08rem;
+                                         line-height:1.3;">{fila_t['Equipo']}{insignia_mejor}</div>
+                                    <div style="font-family:'Inter', sans-serif; color:#6B7280; font-size:0.82rem; margin-top:0.25rem;
+                                         display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                                    <span style="font-family:'JetBrains Mono', monospace; color:#14213D; font-weight:600;">{fila_t['Temporada']}</span>
+                                    <span>·</span><span>{arquetipo_txt}</span>
+                                    <span style="background:{color_liga_t}1A; color:{color_liga_t}; border:1px solid {color_liga_t};
+                                         font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:0.68rem;
+                                         padding:0.08rem 0.5rem; border-radius:20px; margin-left:0.2rem;">{liga_txt}</span>
+                                    </div>
                                 </div>
                             </div>
+                            <div style="text-align:right; flex-shrink:0;">
+                                <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color_t}; font-size:1.5rem;
+                                     line-height:1;">{score_txt}</div>
+                                <div style="font-family:'Inter', sans-serif; color:#9AA0A6; font-size:0.68rem; text-transform:uppercase;
+                                     letter-spacing:0.04em; margin-top:0.15rem;">Score</div>
+                            </div>
                         </div>
-                        <div style="text-align:right; flex-shrink:0;">
-                            <div style="font-family:'JetBrains Mono', monospace; font-weight:700; color:{color_t}; font-size:1.5rem;
-                                 line-height:1;">{score_txt}</div>
-                            <div style="font-family:'Inter', sans-serif; color:#9AA0A6; font-size:0.68rem; text-transform:uppercase;
-                                 letter-spacing:0.04em; margin-top:0.15rem;">Score</div>
-                        </div>
-                    </div>
-                </div>""")
-        # el último punto de la línea no necesita continuar hacia abajo
-        filas_timeline[-1] = filas_timeline[-1].replace(
-            'background:#E4E1D8; margin-top:0.3rem;', 'background:transparent; margin-top:0.3rem;'
-        )
-        render_html("<div>" + "".join(filas_timeline) + "</div>")
+                    </div>""")
+            # el último punto de la línea no necesita continuar hacia abajo
+            filas_timeline[-1] = filas_timeline[-1].replace(
+                'background:#E4E1D8; margin-top:0.3rem;', 'background:transparent; margin-top:0.3rem;'
+            )
+            render_html("<div>" + "".join(filas_timeline) + "</div>")
 
-        tabla_tray = historial_tray[["Temporada", "Equipo", "grupo", "arquetipo_proyectado", "score_final"]].rename(
+        with col_side:
+            with st.container(border=True):
+                st.markdown("##### Evolución del score")
+                fig_evo_tray = go.Figure()
+                fig_evo_tray.add_trace(go.Scatter(
+                    x=historial_tray["Temporada"], y=historial_tray["score_final"],
+                    mode="lines+markers", line=dict(color=color_cab, width=3),
+                    marker=dict(size=10, color=color_cab, line=dict(width=2, color="#FFFFFF")),
+                    hovertemplate="%{x}<br>Score: %{y:.1f}<extra></extra>",
+                ))
+                fig_evo_tray.update_layout(
+                    height=220, margin=dict(l=10, r=10, t=10, b=10), showlegend=False,
+                    font=dict(family="Inter, sans-serif", color="#14213D", size=11),
+                    paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+                    yaxis=dict(gridcolor="#EDEBE4", range=[0, 100]),
+                    xaxis=dict(gridcolor="#EDEBE4"),
+                )
+                st.plotly_chart(fig_evo_tray, width='stretch')
+
+            if mejor_fila is not None and pd.notna(mejor_fila.get("shap_top_factores")):
+                with st.container(border=True):
+                    st.markdown(f"##### Por qué destacó en {mejor_fila['Temporada']} (SHAP)")
+                    factores = mejor_fila["shap_top_factores"].split(" | ")
+                    nombres_shap = [f.split(" (")[0] for f in factores]
+                    valores_shap = [float(f.split("(")[1].replace(")", "").replace("+", "").replace("−", "-"))
+                                    for f in factores]
+                    colores_shap = [color_cab if v >= 0 else "#B33A3A" for v in valores_shap]
+                    fig_shap_tray = go.Figure(go.Bar(
+                        x=valores_shap, y=nombres_shap, orientation="h", marker_color=colores_shap,
+                        text=[f"{v:+.1f}" for v in valores_shap], textposition="outside",
+                    ))
+                    fig_shap_tray.update_layout(
+                        height=220, margin=dict(l=10, r=10, t=10, b=10),
+                        font=dict(family="Inter, sans-serif", color="#14213D", size=10),
+                        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+                    )
+                    st.plotly_chart(fig_shap_tray, width='stretch')
+
+        tabla_tray = historial_tray[["Temporada", "Equipo", "Liga", "grupo", "arquetipo_proyectado", "score_final"]].rename(
             columns={"grupo": "Posición", "arquetipo_proyectado": "Arquetipo", "score_final": "Score"}
         ).round({"Score": 1})
         with st.expander("Ver como tabla"):
