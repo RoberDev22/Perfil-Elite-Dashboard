@@ -304,31 +304,18 @@ VALIDACION_EMPIRICA = [
     "Pau Víctor", "Fermín López", "Victor Muñoz",
 ]
 
+# Textos sin scores ni edades fijos a mano: esos datos ya viven en el CSV
+# (que ahora refleja el club/edad actuales de cada jugador, ver nota metodologica
+# del TFM, seccion 19.1) y se muestran dinamicamente en la propia tarjeta, para
+# que el texto nunca quede desincronizado de los datos del pipeline.
 VALIDACION_TEXTO = {
-    'Fer López': "Debutó con el primer equipo del Celta y fue internacional sub-21. El sistema lo puntuó como el perfil más alto de todo el dataset (96.8).",
+    'Fer López': "Debutó con el primer equipo del Celta y fue internacional sub-21.",
     'A. Ezzalzouli': "Saltó del filial del Real Betis al primer equipo y después al FC Barcelona, consolidándose en LaLiga como extremo de banda.",
-    'Pablo Torre': "Del filial del Mallorca al primer equipo del FC Barcelona con apenas 19 años.",
+    'Pablo Torre': "Del filial del Mallorca al primer equipo del FC Barcelona siendo aún juvenil.",
     'Jan Virgili': "Progresó en la cantera del Barcelona hasta el primer equipo, confirmando el perfil de extremo desbordador detectado.",
     'Pau Víctor': "De la Primera Federación al FC Barcelona, donde debutó en LaLiga como delantero.",
-    'Fermín López': "De la Primera Federación (Barça Atlètic) al once titular del FC Barcelona en apenas una temporada.",
-    'Victor Muñoz': "Detectado en su temporada de consolidación 2024-25 con el Real Madrid Castilla. Fichó por el Osasuna, fue elegido mejor sub-23 de LaLiga en dos ocasiones, debutó con España y fue convocado al Mundial 2026, antes de ser traspasado al Liverpool F.C. por su cláusula de 40M€.",
-}
-
-# Club en el que juega cada jugador HOY (no el de su etapa en 1ª RFEF). Dato mantenido a mano,
-# igual que VALIDACION_TEXTO, porque el mercado de fichajes cambia y no está en ningún CSV del dataset.
-EQUIPO_ACTUAL_ACTUALIZADO = "6 de julio de 2026"
-EQUIPO_ACTUAL = {
-    'Fer López': "Wolverhampton Wanderers",
-    'A. Ezzalzouli': "Real Betis Balompié",
-    'Pablo Torre': "RCD Mallorca",
-    'Jan Virgili': "RCD Mallorca",
-    'Pau Víctor': "Sporting de Braga",
-    'Fermín López': "FC Barcelona",
-    'Victor Muñoz': "Liverpool FC",
-}
-EQUIPO_ACTUAL_NOTA = {
-    'Fer López': "de vuelta de su cesión en el Celta; su destino para 2026-27 aún se decide este verano.",
-    'Jan Virgili': "el FC Barcelona negocia su recompra y una cesión inmediata al Real Betis (operación en curso, no oficializada).",
+    'Fermín López': "De la Primera Federación (Barça Atlètic) al once titular del FC Barcelona en pocas temporadas.",
+    'Victor Muñoz': "Detectado en su temporada de consolidación con el Real Madrid Castilla, y desde entonces con paso confirmado por LaLiga y fuera de España.",
 }
 
 
@@ -884,9 +871,6 @@ with tab_destacados:
         grupo_hist = ultima["grupo"]
         foto_d = buscar_imagen("jugadores", ultima["Jugador"])
         escudo_d = buscar_imagen("escudos", ultima["Equipo"])
-        equipo_actual = EQUIPO_ACTUAL.get(nombre)
-        escudo_actual = buscar_imagen("escudos", equipo_actual) if equipo_actual else None
-        nota_actual = EQUIPO_ACTUAL_NOTA.get(nombre)
 
         with st.container(border=True):
             col_side, col_main = st.columns([1, 2.6])
@@ -903,9 +887,9 @@ with tab_destacados:
                          color:#14213D; font-size:1.2rem; margin-top:0.5rem;">{ultima['Jugador']}</div>
                          <div style="text-align:center; font-family:'Inter', sans-serif; color:#6B7280; font-size:0.85rem;
                          display:flex; align-items:center; justify-content:center; gap:0.35rem; margin:0.15rem 0;">
-                         {img_html(escudo_d, size=20, radius="3px")} {ultima['Equipo']}</div>
+                         {img_html(escudo_d, size=20, radius="3px")} {ultima['Equipo']} <span style="color:#9AA0A6;">(club actual)</span></div>
                          <div style="text-align:center; font-family:'Inter', sans-serif; color:#9AA0A6; font-size:0.75rem;
-                         margin-bottom:0.7rem;">temporada destacada: {ultima['Temporada']}</div>""",
+                         margin-bottom:0.7rem;">mejor temporada en el dataset: {ultima['Temporada']}</div>""",
                     container=col_side,
                 )
                 render_html(
@@ -915,19 +899,6 @@ with tab_destacados:
                          {ultima['arquetipo_proyectado']} · {ultima['grupo']}</div>""",
                     container=col_side,
                 )
-
-                if equipo_actual:
-                    render_html(
-                        f"""<div style="background:#FFF8EC; border:1px solid #E8A33D; border-left:5px solid #E8A33D;
-                             border-radius:8px; padding:0.4rem 0.6rem; display:flex; align-items:center;
-                             justify-content:center; gap:0.35rem; font-family:'Space Grotesk', sans-serif;
-                             font-weight:600; color:#14213D; font-size:0.82rem; margin-bottom:0.3rem;">
-                             {img_html(escudo_actual, size=20, radius="3px")} Actualmente: {equipo_actual}</div>""",
-                        container=col_side,
-                    )
-                    if nota_actual:
-                        col_side.caption(f"📌 {nota_actual}")
-                    col_side.caption(f"Verificado a {EQUIPO_ACTUAL_ACTUALIZADO}.")
 
                 if not extra_row.empty:
                     e = extra_row.iloc[0]
