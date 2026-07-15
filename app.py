@@ -400,13 +400,6 @@ tab_ranking, tab_ficha, tab_comparador, tab_validacion, tab_destacados, tab_tray
 # jugados) que esta pestaña necesitaba. Se reactivará en cuanto lleguen esos datos.
 
 # ---------------------------------------------------------------------------
-# Barra lateral — filtros de Ranking y de Comparador, cada uno en su propio
-# grupo. Cada grupo solo debe verse en su pestaña correspondiente: el bloque
-# de JS más abajo (toggleSidebarPorTab / marcarGruposSidebar) oculta/muestra
-# la sidebar y el grupo activo según la pestaña seleccionada, porque Streamlit
-# no ofrece forma nativa de acotar st.sidebar a una sola pestaña.
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
 # TAB 1 — Ranking
 # ---------------------------------------------------------------------------
 with tab_ranking:
@@ -418,6 +411,13 @@ with tab_ranking:
                  font-family:'Space Grotesk', sans-serif; font-weight:700; color:#14213D; font-size:1.05rem;">
                  <span style="font-family:'Material Symbols Rounded'; font-weight:400; font-size:1.3rem;
                  color:#1B4332; line-height:1;">tune</span>Filtros</div>"""
+        )
+
+        render_label_icono("search", "Buscar jugador")
+        jugadores_buscados = st.multiselect(
+            " ", sorted(rfef["Jugador"].dropna().unique()), default=[],
+            placeholder="Escribe un nombre para buscar (autocompleta mientras escribes)...",
+            label_visibility="collapsed",
         )
 
         c1, c2, c3, c4 = st.columns(4)
@@ -465,6 +465,8 @@ with tab_ranking:
     )
     if equipos_sel_rank:
         filtro &= rfef["Equipo"].isin(equipos_sel_rank)
+    if jugadores_buscados:
+        filtro &= rfef["Jugador"].isin(jugadores_buscados)
     tabla = rfef[filtro].sort_values("score_final", ascending=False)
 
     st.write(f"**{len(tabla)}** jugadores cumplen los filtros.")
