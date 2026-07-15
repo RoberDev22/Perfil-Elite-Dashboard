@@ -604,6 +604,12 @@ with tab_ranking:
 
     with st.container(border=True):
         st.markdown("#### Edad vs. Score — dónde están los perfiles jóvenes con puntuación alta")
+        st.caption(
+            "El **Score** combina tres componentes: similitud con los arquetipos de LaLiga (similitud coseno), "
+            "sobre-rendimiento contextual (Z-score dentro de su grupo comparable) y un ajuste por edad que valora "
+            "más el margen de progresión de los perfiles jóvenes. No es una nota de nivel absoluto, sino una señal "
+            "relativa para priorizar el seguimiento dentro de cada posición."
+        )
         fig_scatter = go.Figure()
         for grupo_s in sorted(tabla["grupo"].unique()):
             sub = tabla[tabla["grupo"] == grupo_s]
